@@ -1,6 +1,6 @@
 import reflex as rx
 from ..backend.backend import States
-from ..components.modal_status import modal_status
+from ..components.modal_status import modal_status, modal_status_info
 
 
 def _badge(icon: str, text: str):
@@ -45,11 +45,20 @@ def status_button(status: str, orderno: str):
         )
 
     else:
-        return rx.button(
-            _badge(icon, text),
-            border_radius="20px",
-            opacity=1,
-            bg=color,
-            color="white",
-            _hover={"bg": "darken", "color": "white"}
+        return rx.dialog.root(
+            rx.dialog.trigger(
+                rx.button(
+                    _badge(icon, text),
+                    border_radius="20px",
+                    opacity=1,
+                    bg=color,
+                    color="white",
+                    _hover={"bg": "darken", "color": "white"},
+                    on_click=States.show_order_details(orderno)
+                )
+            ),
+
+            # Modal para ajuste Status
+            modal_status_info(),
+            # Fin de Modal
         )
