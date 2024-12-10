@@ -1,0 +1,116 @@
+
+############# backend.py ###############
+
+# class Suppliers(rx.Model, table=True):
+# class PurchOrders(rx.Model, table=True):
+# class States(rx.State):
+
+
+############# main_table.py ###############
+
+# def table_purchs(list_purchs: list[PurchOrders]) -> rx.Component:
+# def row_table(purchorders: PurchOrders) -> rx.Component:
+
+
+############# purchs_page.py ###############
+
+# def index() -> rx.Component:
+
+############# Tabla Suppliers ###############
+
+#    supplierid: str = Field(default=None, primary_key=True)
+#    suppname: str
+#    currcode: str
+#    phn: str
+#    orders: list["PurchOrders"] = Relationship(back_populates="suppliers")
+
+############# Tabla PurchOrders ###############
+
+#    orderno: str = Field(default=None, primary_key=True)
+#    supplierno: str = Field(foreign_key="suppliers.supplierid")
+#    comments: str
+#    orddate: str
+#    requisitionno: str
+#    orderref: str
+#    status: str
+#    suppliers: Suppliers = Relationship(back_populates="orders")
+
+############# cabeceras ###############
+
+#        rx.table.column_header_cell('supplierno'),
+#        rx.table.column_header_cell('comments'),
+#        rx.table.column_header_cell('orddate'),
+#        rx.table.column_header_cell('requisitionno'),
+#        rx.table.column_header_cell('orderref'),
+#        rx.table.column_header_cell('status'),
+
+############# Filas ###############
+
+#        rx.table.cell(purchorders.supplierno),
+#        rx.table.cell(purchorders.comments),
+#        rx.table.cell(purchorders.orddate),
+#        rx.table.cell(purchorders.requisitionno),
+#        rx.table.cell(purchorders.orderref),
+#        rx.table.cell(purchorders.status),
+
+
+# rx.flex() --->>> direction='column', style={"width": '60vw', 'margin': 'auto', "margin_top": "5em"}
+
+# app = rx.App()
+
+
+#####################################
+
+
+'''class Drink:
+    def __init__(self, name):
+        self.name = name
+
+drink = Drink("agua")
+print(drink.name)'''
+
+
+#################################
+
+'''class Drink:
+    def __init__(self, name):
+        self.name = name
+
+    def GetDetail(self):
+        return "la bebida es:" + self.name
+
+drink = Drink("Agua")
+print(drink.GetDetail()) #imprime: la bebida es: Agua'''
+
+
+#################################   ATRIBUTO PRIVADO    ####################
+
+'''class Drink:
+    def __init__(self, name):
+        self.__name = name
+
+    def GetDetail(self):
+        return "La bebida es:" + self.__name
+
+
+drink = Drink("Agua")
+print(drink.__name)
+
+NO IMPRIME'''
+
+
+#################################   ATRIBUTO PRIVADO    ####################
+
+'''class Drink:
+    def __init__(self, name):
+        self.__name = name
+
+    def GetDetail(self):
+        return "La bebida es:" + self.__name
+
+
+drink = Drink("Agua")
+print(drink.GetDetail())    Result: La bebida es:Agua'''
+
+
+#################################   ATRIBUTO PRIVADO    ####################
