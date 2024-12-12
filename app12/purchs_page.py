@@ -10,7 +10,7 @@ def index() -> rx.Component:
         rx.vstack(
             rx.hstack(
                 rx.color_mode.button(),
-                rx.heading('Ordenes', align='center'),
+                rx.heading('Ordenes Mary Kay', align='center'),
                 width="80%",
                 justify="center"
             ),
