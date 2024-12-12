@@ -89,6 +89,11 @@ class States(rx.State):
         self.selected_location = "ALL"
         return States.get_all_purchs
 
+    @rx.var
+    def last_four_digits(self) -> str:
+        """A computed var that returns the last 4 digits."""
+        return self.requisitionno[-4:]
+
 
 def show_location(location: Locations):
     return location.loccode

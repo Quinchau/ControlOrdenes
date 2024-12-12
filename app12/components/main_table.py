@@ -8,12 +8,12 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
         rx.table.header(
             rx.table.row(
                 # rx.table.column_header_cell('order'),
-                # rx.table.column_header_cell('tracking'),
+                rx.table.column_header_cell('tracking'),
                 # rx.table.column_header_cell('ordeno'),
                 rx.table.column_header_cell('supplier'),
                 # rx.table.column_header_cell('SupplierName'),
                 rx.table.column_header_cell('Status'),
-                rx.table.column_header_cell('orddate'),
+                # rx.table.column_header_cell('orddate'),
                 # rx.table.column_header_cell('status'),
             )
         ), rx.table.body(
@@ -25,7 +25,7 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
 def row_table(purchorders: PurchOrders12) -> rx.Component:
     return rx.table.row(
         # rx.table.cell(purchorders.orderref),
-        # rx.table.cell(purchorders.requisitionno),
+        rx.table.cell(purchorders.requisitionno[-4:]),
         rx.table.cell(purchorders.supplierno),
         rx.table.cell(
             rx.match(
@@ -37,5 +37,5 @@ def row_table(purchorders: PurchOrders12) -> rx.Component:
                 status_button("Pending", purchorders.orderno),
             )
         ),
-        rx.table.cell(purchorders.orddate[:10]),
+        # rx.table.cell(purchorders.orddate[:10]),
     )
