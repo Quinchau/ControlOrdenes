@@ -7,7 +7,7 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
     return rx.table.root(
         rx.table.header(
             rx.table.row(
-                rx.table.column_header_cell('order'),
+                # rx.table.column_header_cell('order'),
                 # rx.table.column_header_cell('tracking'),
                 # rx.table.column_header_cell('ordeno'),
                 rx.table.column_header_cell('supplier'),
@@ -24,7 +24,7 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
 
 def row_table(purchorders: PurchOrders12) -> rx.Component:
     return rx.table.row(
-        rx.table.cell(purchorders.orderref),
+        # rx.table.cell(purchorders.orderref),
         # rx.table.cell(purchorders.requisitionno),
         rx.table.cell(purchorders.supplierno),
         rx.table.cell(
