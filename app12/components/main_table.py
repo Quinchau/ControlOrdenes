@@ -7,10 +7,10 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
     return rx.table.root(
         rx.table.header(
             rx.table.row(
-                # rx.table.column_header_cell('order'),
-                rx.table.column_header_cell('tracking'),
+                rx.table.column_header_cell('Ref'),
+                rx.table.column_header_cell('Ordena'),
+                rx.table.column_header_cell('track'),
                 # rx.table.column_header_cell('ordeno'),
-                rx.table.column_header_cell('supplier'),
                 # rx.table.column_header_cell('SupplierName'),
                 rx.table.column_header_cell('Status'),
                 # rx.table.column_header_cell('orddate'),
@@ -24,9 +24,9 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
 
 def row_table(purchorders: PurchOrders12) -> rx.Component:
     return rx.table.row(
-        # rx.table.cell(purchorders.orderref),
+        rx.table.cell(purchorders.suppliername.refaddress),
+        rx.table.cell(purchorders.suppliername.suppname[:10]),
         rx.table.cell(purchorders.requisitionno[-4:]),
-        rx.table.cell(purchorders.supplierno),
         rx.table.cell(
             rx.match(
                 purchorders.comments.lower(),

@@ -1,5 +1,6 @@
 import reflex as rx
 from sqlmodel import Field, select, desc, Relationship
+import sqlalchemy
 
 
 class Suppliers(rx.Model, table=True):
@@ -7,6 +8,9 @@ class Suppliers(rx.Model, table=True):
     suppname: str
     currcode: str
     phn: str
+    refaddress: str
+    purchorders_list: list["PurchOrders12"] = Relationship(
+        back_populates="suppliername")
 
 
 class Locations(rx.Model, table=True):
@@ -16,7 +20,7 @@ class Locations(rx.Model, table=True):
 
 class PurchOrders12(rx.Model, table=True):
     orderno: str = Field(default=None, primary_key=True)
-    supplierno: str
+    supplierno: str = Field(default=None, foreign_key="suppliers.supplierid")
     comments: str
     orddate: str
     requisitionno: str
@@ -27,6 +31,8 @@ class PurchOrders12(rx.Model, table=True):
     deladd2: str
     deladd3: str
     intostocklocation: str
+    suppliername: Suppliers | None = Relationship(
+        back_populates="purchorders_list")
 
 
 class States(rx.State):
@@ -39,22 +45,24 @@ class States(rx.State):
     async def get_all_purchs(self):
         async with self:
             with rx.session() as session:
-                query = select(PurchOrders12).where(
+                query = select(PurchOrders12).options(
+                    sqlalchemy.orm.selectinload(PurchOrders12.suppliername)
+                ).join(
+                    Suppliers
+                ).where(
                     PurchOrders12.status != "Completed",
                     PurchOrders12.status != "Cancelled"
                 )
-
-                # El filtro debe estar dentro del bloque with rx.session
                 if self.selected_location and self.selected_location != "ALL":
                     query = query.where(
                         PurchOrders12.intostocklocation == self.selected_location
                     )
-
                 query = query.order_by(
-                    desc(PurchOrders12.orddate), PurchOrders12.comments
+                    (PurchOrders12.comments),
+                    Suppliers.refaddress
                 )
-                # La ejecución del query debe estar dentro del bloque with rx.session
-                self.purchorders = session.exec(query).all()
+                results = session.exec(query).all()
+            self.purchorders = results
 
     @rx.event
     async def show_order_details(self, orderno: str):
