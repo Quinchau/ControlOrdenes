@@ -1,9 +1,9 @@
 import reflex as rx
-from ..backend.backend import PurchOrders12
+from ..backend.backend import PurchOrders
 from ..components.color_status import status_button
 
 
-def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
+def table_purchs(list_purchs: list[PurchOrders]) -> rx.Component:
     return rx.table.root(
         rx.table.header(
             rx.table.row(
@@ -22,7 +22,7 @@ def table_purchs(list_purchs: list[PurchOrders12]) -> rx.Component:
     )
 
 
-def row_table(purchorders: PurchOrders12) -> rx.Component:
+def row_table(purchorders: PurchOrders) -> rx.Component:
     return rx.table.row(
         rx.table.cell(purchorders.suppliername.refaddress),
         rx.table.cell(purchorders.suppliername.suppname[:10]),

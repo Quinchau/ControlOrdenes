@@ -1,4 +1,4 @@
-#!/home/charlie_ubu/proyectos/app12/.venv/bin/python3
+#!/home/charlie_ubu/proyectos/app12/.venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

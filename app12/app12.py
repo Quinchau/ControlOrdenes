@@ -1,8 +1,6 @@
-"""Welcome to Reflex! This file outlines the steps to create a basic app."""
-
 import reflex as rx
-
 from rxconfig import config
+from .backend.backend import States
 
 
 class State(rx.State):
@@ -11,17 +9,20 @@ class State(rx.State):
     ...
 
 
+@rx.page(route="/", title="Home", on_load=States.check_auth)
 def index() -> rx.Component:
     # Welcome Page (Index)
     return rx.flex(
         rx.vstack(
             rx.button("Gestion Mary Kay", width='40vh',
-                      height='8vh', radius='full',  on_click=rx.redirect("/purchs_page")),
+                      height='7vh', radius='full',  on_click=rx.redirect("/purchs_page")),
             rx.button("Gestion Amazon", width='40vh',
-                      height='8vh',
+                      height='7vh',
                       radius='full', disable='True', on_click=rx.toast("Próximamente...")),
             rx.button("Otros", width='40vh',
-                      height='8vh', radius='full', disable='True', on_click=rx.toast("Próximamente...")),
+                      height='7vh', radius='full', disable='True', on_click=rx.toast("Próximamente...")),
+            rx.button("Salir", width='40vh',
+                      height='7vh', radius='full', disable='True', on_click=States.logout),
             rx.code("to-do-easy.com", size="6",
                     color_scheme="indigo", weight="bold"),
             border_width="2px",
@@ -34,11 +35,9 @@ def index() -> rx.Component:
             spacing="9",
             background_image="url('/drops-6392473_640.jpg')",
 
-
         ),
         justify='center'
     )
 
 
 app = rx.App()
-app.add_page(index)
