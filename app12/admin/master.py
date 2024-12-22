@@ -1,6 +1,6 @@
 import reflex as rx
 from rxconfig import config
-from .backend.backend import States
+from ..backend.backend import States
 
 
 class State(rx.State):
@@ -9,7 +9,7 @@ class State(rx.State):
     ...
 
 
-@rx.page(route="/", title="Home", on_load=States.check_auth)
+@rx.page(route="/admin/master", title="Master", on_load=States.check_auth)
 def index() -> rx.Component:
     return rx.cond(
         States.auth_token != "",  # Check if token exists in LocalStorage
@@ -26,7 +26,7 @@ def index() -> rx.Component:
                           height='7vh',
                           radius='full',
                           disable='True',
-                          on_click=rx.redirect("/amazon_index")),
+                          on_click=rx.toast("Próximamente...")),
                 rx.button("Otros",
                           width='40vh',
                           height='7vh',

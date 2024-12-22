@@ -1,7 +1,10 @@
 import reflex as rx
-from sqlmodel import Field, select, desc, Relationship
-import sqlalchemy
+from sqlmodel import Field, select, Relationship
+import sqlalchemy.orm as sqlorm
+import sqlalchemy as sq
 import hashlib
+from typing import Optional
+import os
 
 
 class Suppliers(rx.Model, table=True):
@@ -58,30 +61,107 @@ class Www_users(rx.Model, table=True):
     currencyuser: str
 
 
+class Locstock(rx.Model, table=True):
+    loccode: str
+    stockid: str = Field(default=None, primary_key=True,
+                         foreign_key="stockmaster.stockid")
+    quantity: int
+    reorderlevel: int
+    location: str
+    lowstockfee: int
+    stock_master: Optional["StockMaster"] = Relationship(
+        back_populates="loc_stocks")
+
+
+class StockMaster(rx.Model, table=True):
+    stockid: str = Field(default=None, primary_key=True)
+    categoryid: str
+    description: str
+    minimo: int
+    stock_image: Optional["Stock_Image"] = Relationship(
+        back_populates="stock_master")
+    loc_stocks: list["Locstock"] = Relationship(back_populates="stock_master")
+
+
+class Stock_Image(rx.Model, table=True):
+    id_image: int = Field(default=None, primary_key=True)
+    id_product: str = Field(default=None, foreign_key="stockmaster.stockid")
+    position: int
+    cover: int
+    imagen_principal: int
+    stock_master: Optional[StockMaster] = Relationship(
+        back_populates="stock_image")
+
+
+class StockDisplayItem(rx.Base):
+    """Modelo para mostrar en la tabla."""
+    stockid: str
+    description: str
+    lowstockfee: int
+    id_image: int
+
+
 class States(rx.State):
     purchorders: list[PurchOrders] = []
     selected_order: PurchOrders = None
     locations: list[Locations] = []
     selected_location: str = "ALL"
-    email: str = ""
+    email: str = rx.LocalStorage("")
     password: str = ""
     error_message: str = ""
-    authenticated: bool = False
+    auth_token: str = rx.LocalStorage("")
+    stocklowfee: list[StockMaster] = []
+    user_warehouse: str = rx.LocalStorage("")
 
     @rx.event(background=True)
     async def get_all_purchs(self):
         async with self:
             with rx.session() as session:
-                query = select(PurchOrders).options(sqlalchemy.orm.selectinload(PurchOrders.suppliername)
+                query = select(PurchOrders).options(sqlorm.selectinload(PurchOrders.suppliername)
                                                     ).join(Suppliers).where(PurchOrders.status != "Completed", PurchOrders.status != "Cancelled"
                                                                             )
-                if self.selected_location and self.selected_location != "ALL":
+                if self.selected_location != "ALL":
                     query = query.where(PurchOrders.intostocklocation == self.selected_location
-                                        )
-                query = query.order_by(
-                    (PurchOrders.comments), Suppliers.suppname, Suppliers.refaddress)
+                                        ).order_by(PurchOrders.comments,
+                                                   Suppliers.refaddress, Suppliers.suppname)
                 results = session.exec(query).all()
             self.purchorders = results
+            # print(self.purchorders)
+
+    @rx.event(background=True)
+    async def get_prod_lowstockfee(self):
+        async with self:
+            with rx.session() as session:
+                query = select(
+                    StockMaster.stockid,
+                    StockMaster.description,
+                    Locstock.lowstockfee,
+                    Stock_Image.id_image
+                ).join(Locstock, StockMaster.stockid == Locstock.stockid).join(Stock_Image, StockMaster.stockid == Stock_Image.id_product
+                                                                               ).where(Locstock.lowstockfee == 1, Locstock.loccode == self.user_warehouse, Stock_Image.cover == 1)
+            results = session.exec(query).all()
+
+            self.stocklowfee = [
+                StockDisplayItem(
+                    stockid=row[0],
+                    description=row[1],
+                    lowstockfee=row[2],
+                    id_image=row[3],
+                    # Add image_url and call get_image_path
+                    image_url=self.get_image_path(row[3])
+                ) for row in results
+            ]
+
+            # Imprime el tipo y los datos para verificación
+            print(type(self.stocklowfee))
+            print(self.stocklowfee)
+
+    def get_image_path(self, id_image) -> str:
+        image_id_str = str(id_image)
+        lista_digitos = list(image_id_str)
+        image_path = 'https://quinchau.com/webmaster2/weberp/img/p/' + \
+            '/'.join(lista_digitos) + "/" + image_id_str + ".jpg"
+        return image_path
 
     @rx.event
     async def show_order_details(self, orderno: str):
@@ -113,7 +193,7 @@ class States(rx.State):
 
     @rx.event
     async def on_load(self):
-        if not self.authenticated:
+        if not self.auth_token:
             return rx.redirect("/login")
         self.selected_location = "ALL"
         return States.get_all_purchs
@@ -136,12 +216,8 @@ class States(rx.State):
 
         email = form_data.get("email")
         password = form_data.get("password")
-
-        # Agregar mensajes de depuración
-        # print("Form data received:", form_data)
-        # print("Email:", email)
-        # print("Password:", password)
-
+        print(f"email: {email}")
+        print(f"password: {password}")
         if not email or not password:
             self.error_message = "Please enter both email and password"
             return
@@ -153,10 +229,11 @@ class States(rx.State):
 
             if user:
                 # or 'md5' based on your requirement
-                hashed_input_password = hash_password(password, 'sha1')
-                if user and user.password == hashed_input_password:
-                    self.authenticated = True
+                if user and user.password == hash_password(password, 'sha1'):
+                    self.auth_token = user.userid
                     self.email = user.email
+                    self.user_warehouse = user.defaultlocation
+
                     return rx.redirect("/")
                 else:
                     self.error_message = "Invalid credentials"
@@ -165,18 +242,30 @@ class States(rx.State):
 
     @rx.event
     def check_auth(self):
-        # Check if user is authenticated
-        if not self.authenticated:
+        # Check if user is authenticated and has valid token
+        if not self.auth_token:
             return rx.redirect("/login")
 
     @rx.event
     async def logout(self):
         """Cerrar sesión del usuario."""
-        self.authenticated = False
+        self.auth_token = ""
         self.email = ""
-        self.password = ""
-        self.error_message = ""
-        return rx.redirect("/login")
+        return [
+            rx.remove_local_storage("states.authenticated"),
+            rx.remove_local_storage("states.email"),
+            rx.remove_local_storage("states.auth_token"),
+            rx.remove_local_storage("states.user_warehouse"),
+            rx.redirect("/login")
+        ]
+
+        def get_user_warehouse(email):
+            with session() as session:
+                user = session.query(Www_users).filter_by(email=email).first()
+                if user:
+                    return user.defaultlocation
+                else:
+                    return None
 
 
 def show_location(location: Locations):

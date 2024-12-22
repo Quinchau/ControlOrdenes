@@ -9,24 +9,24 @@ class State(rx.State):
     ...
 
 
-@rx.page(route="/", title="Home", on_load=States.check_auth)
+@rx.page(route="/amazon_index", title="Index_Amazon", on_load=States.check_auth)
 def index() -> rx.Component:
     return rx.cond(
         States.auth_token != "",  # Check if token exists in LocalStorage
         # Authenticated view
         rx.flex(
             rx.vstack(
-                rx.button("Gestion Mary Kay",
+                rx.button("Applicable Fees",
                           width='40vh',
                           height='7vh',
                           radius='full',
-                          on_click=rx.redirect("/purchs_page")),
-                rx.button("Gestion Amazon",
+                          on_click=rx.redirect("/lowstockfee")),
+                rx.button("Otros",
                           width='40vh',
                           height='7vh',
                           radius='full',
                           disable='True',
-                          on_click=rx.redirect("/amazon_index")),
+                          on_click=rx.toast("Próximamente...")),
                 rx.button("Otros",
                           width='40vh',
                           height='7vh',
