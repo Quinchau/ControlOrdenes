@@ -1,10 +1,9 @@
 import reflex as rx
-from sqlmodel import Field, select, Relationship
+from sqlmodel import Field, select, Relationship, update
 import sqlalchemy.orm as sqlorm
 import sqlalchemy as sq
 import hashlib
 from typing import Optional
-import os
 
 
 class Suppliers(rx.Model, table=True):
@@ -98,7 +97,12 @@ class StockDisplayItem(rx.Base):
     stockid: str
     description: str
     lowstockfee: int
-    id_image: int
+    id_image: Optional[int]
+
+
+class SearchResult(rx.Base):
+    stockid: str
+    description: str
 
 
 class States(rx.State):
@@ -112,6 +116,9 @@ class States(rx.State):
     auth_token: str = rx.LocalStorage("")
     stocklowfee: list[StockMaster] = []
     user_warehouse: str = rx.LocalStorage("")
+    search_term: str = ""  # Initialize with empty string
+    search_results: list[SearchResult] = []
+    selected_product: str = ""
 
     @rx.event(background=True)
     async def get_all_purchs(self):
@@ -136,9 +143,14 @@ class States(rx.State):
                     StockMaster.stockid,
                     StockMaster.description,
                     Locstock.lowstockfee,
-                    Stock_Image.id_image
-                ).join(Locstock, StockMaster.stockid == Locstock.stockid).join(Stock_Image, StockMaster.stockid == Stock_Image.id_product
-                                                                               ).where(Locstock.lowstockfee == 1, Locstock.loccode == self.user_warehouse, Stock_Image.cover == 1)
+                    Stock_Image.id_image,
+                    Locations.locationname
+                ).join(Locstock, StockMaster.stockid == Locstock.stockid).outerjoin(Stock_Image, StockMaster.stockid == Stock_Image.id_product
+                                                                                    ).join(Locations, Locations.loccode == Locstock.loccode).where(Locstock.lowstockfee == 1)
+                if self.selected_location != "ALL":
+                    query = query.where(Locstock.loccode == self.selected_location,
+                                        Locstock.lowstockfee == 1)
+
             results = session.exec(query).all()
 
             self.stocklowfee = [
@@ -147,21 +159,160 @@ class States(rx.State):
                     description=row[1],
                     lowstockfee=row[2],
                     id_image=row[3],
+                    locationname=row[4],
                     # Add image_url and call get_image_path
                     image_url=self.get_image_path(row[3])
                 ) for row in results
             ]
 
             # Imprime el tipo y los datos para verificación
-            print(type(self.stocklowfee))
-            print(self.stocklowfee)
+            # print(type(self.stocklowfee))
+            # print(self.stocklowfee)
 
     def get_image_path(self, id_image) -> str:
+        if id_image is None:
+            return "/nophoto.jpg"
+
         image_id_str = str(id_image)
         lista_digitos = list(image_id_str)
         image_path = 'https://quinchau.com/webmaster2/weberp/img/p/' + \
             '/'.join(lista_digitos) + "/" + image_id_str + ".jpg"
         return image_path
+
+    @rx.event(background=True)
+    async def exclude_product(self, stockid):
+        async with self:
+            with rx.session() as session:
+                try:
+                    # Construir la declaración de actualización
+                    if self.selected_location == "ALL":
+                        return rx.window_alert("Debe seleccionar una ubicación para Agregar/Eliminar Productos")
+
+                    stmt = update(Locstock).where(
+                        (Locstock.stockid == stockid) &
+                        (Locstock.loccode == self.selected_location)
+                    ).values(lowstockfee=0)
+
+                    # Ejecutar la actualización
+                    session.exec(stmt)
+                    session.commit()
+
+                    # Recargar tabla
+
+                    return States.get_prod_lowstockfee
+
+                except Exception as e:
+                    session.rollback()
+                    print(f"Error al actualizar producto: {e}")
+
+    @rx.event
+    def set_search_term(self, value: str):
+        self.search_term = value
+
+    @rx.event
+    async def select_product(self, stockid: str):
+        self.selected_product = stockid
+        return States.update_lowstockfee(stockid)
+
+    @rx.event(background=True)
+    async def update_lowstockfee(self, stockid: str):
+        async with self:
+            with rx.session() as session:
+                try:
+                    stmt = (
+                        update(Locstock)
+                        .where(Locstock.stockid == stockid,
+                               Locstock.lowstockfee == self.selected_location)
+                        .values(lowstockfee=1)
+                    )
+                    session.exec(stmt)
+                    session.commit()
+
+                    self.search_results = []
+                    self.search_term = ""
+                    return [
+                        States.get_prod_lowstockfee,
+                    ]
+                except Exception as e:
+                    print(f"Error al actualizar el producto: {e}")
+
+    @rx.event
+    def key_down_handler(self, key: str):
+        if key == "Delete":
+            return States.clear_search
+        elif key == "Enter":
+            return States.search_products
+
+    @rx.event(background=True)
+    async def clear_search(self):
+        async with self:
+            self.search_results = []
+            self.search_term = ""
+
+    @rx.event(background=True)
+    async def search_products(self):
+        async with self:
+            with rx.session() as session:
+                try:
+                    query = (
+                        select(
+                            StockMaster.stockid,
+                            StockMaster.description
+                        )
+                        .join(
+                            Locstock,
+                            StockMaster.stockid == Locstock.stockid
+                        )
+                        .where(
+                            (StockMaster.stockid.ilike(f"%{self.search_term}%")) |
+                            (StockMaster.description.ilike(
+                                f"%{self.search_term}%"))
+                        )
+                        .group_by(
+                            StockMaster.stockid,
+                            StockMaster.description
+                        )
+                    )
+
+                    results = session.exec(query).all()
+                    self.search_results = [
+                        {"stockid": r[0], "description": r[1]}
+                        for r in results
+                    ]
+
+                except Exception as e:
+                    print(f"Error en la búsqueda: {e}")
+
+    @rx.event(background=True)
+    async def add_to_lowstockfee(self, stockid: str):
+        async with self:
+            with rx.session() as session:
+                try:
+                    if self.selected_location == "ALL":
+                        return rx.window_alert("Debe seleccionar una ubicación para Agregar/Eliminar Productos")
+
+                    # Actualizar lowstockfee a 1
+                    stmt = update(Locstock).where(
+                        (Locstock.stockid == stockid) &
+                        (Locstock.loccode == self.selected_location)
+                    ).values(lowstockfee=1)
+
+                    session.exec(stmt)
+                    session.commit()
+
+                    # Limpiar resultados de búsqueda
+                    self.search_results = []
+                    self.search_term = ""
+
+                    print(f"Producto '{stockid}'")
+                    print(f"Location '{self.selected_location}'")
+
+                    # Recargar la lista principal
+                    return States.get_prod_lowstockfee
+
+                except Exception as e:
+                    session.rollback()
+                    print(f"Error al agregar producto: {e}")
 
     @rx.event
     async def show_order_details(self, orderno: str):
@@ -192,6 +343,11 @@ class States(rx.State):
         return States.get_all_purchs
 
     @rx.event
+    def set_selected_location_lowstockfee(self, value):
+        self.selected_location = value
+        return States.get_prod_lowstockfee
+
+    @rx.event
     async def on_load(self):
         if not self.auth_token:
             return rx.redirect("/login")
@@ -216,8 +372,6 @@ class States(rx.State):
 
         email = form_data.get("email")
         password = form_data.get("password")
-        print(f"email: {email}")
-        print(f"password: {password}")
         if not email or not password:
             self.error_message = "Please enter both email and password"
             return

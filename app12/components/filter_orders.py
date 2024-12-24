@@ -2,7 +2,7 @@ import reflex as rx
 from ..backend.backend import States
 
 
-def filter_component() -> rx.Component:
+def filter_component(act_state) -> rx.Component:
     return rx.flex(
         rx.select.root(
             rx.select.trigger(placeholder="Filtrar Ordenes"),
@@ -15,7 +15,7 @@ def filter_component() -> rx.Component:
                     rx.select.item("Franchesca", value="STR"),
                 ),
             ),
-            on_change=lambda value: States.set_selected_location(value),),
+            on_change=lambda value: act_state(value),),
         justify="end",
         width="90%",
     ),

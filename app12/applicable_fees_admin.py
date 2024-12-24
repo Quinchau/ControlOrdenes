@@ -1,10 +1,17 @@
 import reflex as rx
+from rxconfig import config
 from .backend.backend import States
-from .components.main_table import table_purchs
-from .components.filter_orders import filter_component
+from .components.main_table_lowstockfee_admin import table_products
+from .components.table_lowstockfee import table_lowstockfee
 
 
-@rx.page(route='/purchs_page', title='purch_page', on_load=States.check_auth)
+class State(rx.State):
+    """The app state."""
+
+    ...
+
+
+@rx.page(route="/applicable_fees_admin", title="Subject Fees", on_load=States.check_auth)
 def index() -> rx.Component:
     return rx.cond(
         States.auth_token != "",
@@ -13,31 +20,30 @@ def index() -> rx.Component:
                 rx.hstack(
                     rx.icon(
                         "home",
-                        size=20,
+                        size=30,
                         color="white",
                         bg="black",
                         cursor="pointer",
-                        margin_top="0.5em",
-                        margin_right="2em",
-                        margin_left="1em",
                         on_click=rx.redirect("/")
                     ),
-
                     rx.heading(
-                        'Ordenes Mary Kay', align='center')
+                        'Applicable Fees', margin_left="2em", width="100%"), rx.color_mode.button(),
+                    margin_top="2em",
+                    margin_right="2em",
+                    margin_left="1em",
                 ),
                 rx.hstack(
-                    filter_component(
-                        States.set_selected_location), rx.color_mode.button(),
+                    table_lowstockfee(States),
                     align="center",
                     justify="between",
                     width="100%",
                 ),
-                table_purchs(States.purchorders)
+
+                table_products(States.stocklowfee),
             ),
             direction='column',
             align='center',
-            on_mount=States.get_all_purchs,
+            on_mount=States.get_prod_lowstockfee,
         ),
     )
 
