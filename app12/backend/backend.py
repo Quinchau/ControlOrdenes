@@ -304,8 +304,8 @@ class States(rx.State):
                     self.search_results = []
                     self.search_term = ""
 
-                    print(f"Producto '{stockid}'")
-                    print(f"Location '{self.selected_location}'")
+                    # print(f"Producto '{stockid}'")
+                    # print(f"Location '{self.selected_location}'")
 
                     # Recargar la lista principal
                     return States.get_prod_lowstockfee
