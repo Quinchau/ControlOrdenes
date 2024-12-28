@@ -1,19 +1,32 @@
 import reflex as rx
-from sqlmodel import Field, select, Relationship, update
+from sqlmodel import Field, select, Relationship, update, func
 import sqlalchemy.orm as sqlorm
-import sqlalchemy as sq
+from sqlalchemy import select, and_, func
+from sqlalchemy.sql.expression import or_, not_
 import hashlib
 from typing import Optional
+from datetime import datetime
+from time import localtime, strftime
 
 
 class Suppliers(rx.Model, table=True):
     supplierid: str = Field(default=None, primary_key=True)
     suppname: str
     currcode: str
+    supptype: str
     phn: str
     refaddress: str
+    remittance: int
+    monthly_orders_numbers: str
+    monthly_fees: float
+    monthly_orders_totals: float
     purchorders_list: list["PurchOrders"] = Relationship(
         back_populates="suppliername")
+
+
+class Suppliertype(rx.Model, table=True):
+    typeid: str = Field(default=None, primary_key=True)
+    typename: str
 
 
 class Locations(rx.Model, table=True):
@@ -36,6 +49,12 @@ class PurchOrders(rx.Model, table=True):
     intostocklocation: str
     suppliername: Suppliers | None = Relationship(
         back_populates="purchorders_list")
+
+
+class PurchOrdersDetails(rx.Model, table=True):
+    orderno: str = Field(default=None, primary_key=True)
+    itemdescription: str
+    unitprice: str
 
 
 class Www_users(rx.Model, table=True):
@@ -92,6 +111,14 @@ class Stock_Image(rx.Model, table=True):
         back_populates="stock_image")
 
 
+class PurchOrdersDisplay(rx.Base):
+    order: str
+    refaddress: str
+    suppliername: str
+    requisition: str
+    comments: str
+
+
 class StockDisplayItem(rx.Base):
     """Modelo para mostrar en la tabla."""
     stockid: str
@@ -100,13 +127,29 @@ class StockDisplayItem(rx.Base):
     id_image: Optional[int]
 
 
+class SuppliersDisplayItem(rx.Base):
+    id: str
+    name: str
+    nro_orders: str
+    comisiones: Optional[float] = None
+    totalcompras: Optional[float] = None
+    typename: str
+
+
+class ChildrensOrdersDisplay(rx.Base):
+    childrenid: str
+    childrenname: str
+    parentname: str
+    ordersmonth: str
+
+
 class SearchResult(rx.Base):
     stockid: str
     description: str
 
 
 class States(rx.State):
-    purchorders: list[PurchOrders] = []
+    purchorders: list[PurchOrdersDisplay] = []
     selected_order: PurchOrders = None
     locations: list[Locations] = []
     selected_location: str = "ALL"
@@ -119,21 +162,131 @@ class States(rx.State):
     search_term: str = ""  # Initialize with empty string
     search_results: list[SearchResult] = []
     selected_product: str = ""
+    heads_suppliers: list[Suppliers] = []
+    order_by_head: list[Suppliers] = []
+    children_orders: list[ChildrensOrdersDisplay] = []
+
+    @rx.event(background=True)
+    async def get_children_orders(self, parentname: str):
+        async with self:
+            try:
+                with rx.session() as session:
+                    current_month = strftime("%Y-%m")
+
+                    # Subquery para obtener los IDs de los hijos
+                    subquery = select(Suppliers.supplierid).where(
+                        Suppliers.phn.ilike(f"%{parentname}%")
+                    )
+
+                    # Consulta principal con LEFT OUTER JOIN y exclusión de Hold/Canceled
+                    query = select(
+                        Suppliers.supplierid.label('padre_id'),
+                        Suppliers.suppname.label('padre_name'),
+                        Suppliers.phn.label('supervisor_name'),
+                        func.count(PurchOrders.orderno).label('count_orders')
+                    ).outerjoin(
+                        PurchOrders,
+                        and_(
+                            PurchOrders.supplierno == Suppliers.supplierid,
+                            PurchOrders.orddate.like(f'{current_month}%'),
+                            not_(
+                                or_(
+                                    func.lower(PurchOrders.comments).like(
+                                        'hold'),
+                                    func.lower(PurchOrders.comments).like(
+                                        'canceled')
+                                )
+                            )
+                        )
+                    ).where(
+                        Suppliers.supplierid.in_(subquery)
+                    ).group_by(
+                        Suppliers.supplierid,
+                        Suppliers.suppname,
+                        Suppliers.phn
+                    ).order_by(
+                        func.count(PurchOrders.orderno).desc()
+                    )
+                    results = session.exec(query).all()
+                    self.children_orders = [
+                        ChildrensOrdersDisplay(
+                            childrenid=row[0],
+                            childrenname=row[1],
+                            parentname=row[2],
+                            ordersmonth=row[3]
+                        ) for row in results
+                    ]
+
+                    # print("Query Results:", results)
+                    # print("Current Month:", current_month)
+                    yield
+
+            except Exception as e:
+                print(f"Error executing query: {e}")
+                yield
+
+            except Exception as e:
+                print(f"Error executing query: {e}")
+                yield
+
+    @rx.event(background=True)
+    async def get_all_heads(self):
+        async with self:
+            with rx.session() as session:
+                query = select(Suppliers.supplierid,
+                               Suppliers.suppname,
+                               Suppliers.monthly_fees,
+                               Suppliers.monthly_orders_totals,
+                               Suppliers.monthly_orders_numbers,
+                               Suppliertype.typename,
+                               Locations.loccode
+                               ).join(
+                    Suppliertype, Suppliertype.typeid == Suppliers.supptype).join(Locations, Locations.locationname == Suppliertype.typename).where(
+                    Suppliers.remittance == 1).order_by(Suppliers.monthly_orders_numbers)
+            if self.selected_location != "ALL":
+                query = query.where(self.selected_location ==
+                                    Locations.loccode)
+            results = session.exec(query).all()
+            self.heads_suppliers = [
+                SuppliersDisplayItem(
+                    id=row[0],
+                    name=row[1],
+                    nro_orders=row[4],
+                    comisiones=row[2],
+                    totalcompras=row[3],
+                    typename=row[5]
+                ) for row in results
+            ]
+            # print(self.heads_suppliers)
+            # print(f'Selec_location: {self.selected_location}')
 
     @rx.event(background=True)
     async def get_all_purchs(self):
         async with self:
             with rx.session() as session:
-                query = select(PurchOrders).options(sqlorm.selectinload(PurchOrders.suppliername)
-                                                    ).join(Suppliers).where(PurchOrders.status != "Completed", PurchOrders.status != "Cancelled"
-                                                                            )
+                query = select(PurchOrders.orderno,
+                               Suppliers.refaddress,
+                               Suppliers.suppname,
+                               PurchOrders.requisitionno,
+                               PurchOrders.comments
+                               ).join(Suppliers, Suppliers.supplierid == PurchOrders.supplierno
+                                      ).where(PurchOrders.status != "Completed", PurchOrders.status != "Cancelled"
+                                              )
                 if self.selected_location != "ALL":
                     query = query.where(PurchOrders.intostocklocation == self.selected_location
                                         ).order_by(PurchOrders.comments,
                                                    Suppliers.refaddress, Suppliers.suppname)
                 results = session.exec(query).all()
-            self.purchorders = results
-            # print(self.purchorders)
+                self.purchorders = [PurchOrdersDisplay(
+                                    order=row[0],
+                                    refaddress=row[1],
+                                    suppliername=row[2],
+                                    requisition=row[3],
+                                    comments=row[4]
+                                    )
+                                    for row in results
+                                    ]
+                # print(self.purchorders)
 
     @rx.event(background=True)
     async def get_prod_lowstockfee(self):
@@ -343,6 +496,11 @@ class States(rx.State):
         return States.get_all_purchs
 
     @rx.event
+    def set_selected_location_heads(self, value):
+        self.selected_location = value
+        return States.get_all_heads
+
+    @rx.event
     def set_selected_location_lowstockfee(self, value):
         self.selected_location = value
         return States.get_prod_lowstockfee
@@ -377,17 +535,21 @@ class States(rx.State):
             return
 
         with rx.session() as session:
+            # Modificar la consulta para incluir explícitamente los campos
             user = session.exec(
-                select(Www_users).where(Www_users.email == email)
+                select(
+                    Www_users.userid,
+                    Www_users.password,  # Añadir explícitamente password
+                    Www_users.email,
+                    Www_users.defaultlocation
+                ).where(Www_users.email == email)
             ).first()
 
             if user:
-                # or 'md5' based on your requirement
-                if user and user.password == hash_password(password, 'sha1'):
+                if user.password == hash_password(password, 'sha1'):
                     self.auth_token = user.userid
                     self.email = user.email
                     self.user_warehouse = user.defaultlocation
-
                     return rx.redirect("/")
                 else:
                     self.error_message = "Invalid credentials"
@@ -413,13 +575,13 @@ class States(rx.State):
             rx.redirect("/login")
         ]
 
-        def get_user_warehouse(email):
-            with session() as session:
-                user = session.query(Www_users).filter_by(email=email).first()
-                if user:
-                    return user.defaultlocation
-                else:
-                    return None
+    def get_user_warehouse(email):
+        with session() as session:
+            user = session.query(Www_users).filter_by(email=email).first()
+            if user:
+                return user.defaultlocation
+            else:
+                return None
 
 
 def show_location(location: Locations):

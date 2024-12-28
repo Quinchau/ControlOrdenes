@@ -20,7 +20,7 @@ def index() -> rx.Component:
                           width='40vh',
                           height='7vh',
                           radius='full',
-                          on_click=rx.redirect("/purchs_page")),
+                          on_click=rx.redirect("/marykay_index")),
                 rx.button("Gestion Amazon",
                           width='40vh',
                           height='7vh',
