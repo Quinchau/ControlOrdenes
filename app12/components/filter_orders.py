@@ -15,7 +15,9 @@ def filter_component(act_state) -> rx.Component:
                     rx.select.item("Franchesca", value="STR"),
                 ),
             ),
-            on_change=lambda value: act_state(value),),
+            value=States.selected_location,
+            on_change=lambda value: act_state(value),
+        ),
         justify="end",
         width="90%",
-    ),
+    )

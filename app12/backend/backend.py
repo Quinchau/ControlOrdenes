@@ -119,6 +119,18 @@ class PurchOrdersDisplay(rx.Base):
     comments: str
 
 
+class PurchOrdersModalDisplay(rx.Base):
+    orderno: str
+    orderref: str
+    requisitionno: str
+    urltracking: str
+    supplierno: str
+    deladd1: str
+    deladd2: str
+    comments: str
+    orddate: str
+
+
 class StockDisplayItem(rx.Base):
     """Modelo para mostrar en la tabla."""
     stockid: str
@@ -134,6 +146,7 @@ class SuppliersDisplayItem(rx.Base):
     comisiones: Optional[float] = None
     totalcompras: Optional[float] = None
     typename: str
+    locations: str
 
 
 class ChildrensOrdersDisplay(rx.Base):
@@ -150,7 +163,7 @@ class SearchResult(rx.Base):
 
 class States(rx.State):
     purchorders: list[PurchOrdersDisplay] = []
-    selected_order: PurchOrders = None
+    selected_order: PurchOrdersModalDisplay = None
     locations: list[Locations] = []
     selected_location: str = "ALL"
     email: str = rx.LocalStorage("")
@@ -159,10 +172,10 @@ class States(rx.State):
     auth_token: str = rx.LocalStorage("")
     stocklowfee: list[StockMaster] = []
     user_warehouse: str = rx.LocalStorage("")
-    search_term: str = ""  # Initialize with empty string
+    search_term: str = ""
     search_results: list[SearchResult] = []
     selected_product: str = ""
-    heads_suppliers: list[Suppliers] = []
+    heads_suppliers: list[SuppliersDisplayItem] = []
     order_by_head: list[Suppliers] = []
     children_orders: list[ChildrensOrdersDisplay] = []
 
@@ -235,9 +248,9 @@ class States(rx.State):
             with rx.session() as session:
                 query = select(Suppliers.supplierid,
                                Suppliers.suppname,
+                               Suppliers.monthly_orders_numbers,
                                Suppliers.monthly_fees,
                                Suppliers.monthly_orders_totals,
-                               Suppliers.monthly_orders_numbers,
                                Suppliertype.typename,
                                Locations.loccode
                                ).join(
@@ -251,10 +264,11 @@ class States(rx.State):
                 SuppliersDisplayItem(
                     id=row[0],
                     name=row[1],
-                    nro_orders=row[4],
-                    comisiones=row[2],
-                    totalcompras=row[3],
-                    typename=row[5]
+                    nro_orders=row[2],
+                    comisiones=row[3],
+                    totalcompras=row[4],
+                    typename=row[5],
+                    locations=row[6]
                 ) for row in results
             ]
             # print(self.heads_suppliers)
@@ -470,18 +484,40 @@ class States(rx.State):
     @rx.event
     async def show_order_details(self, orderno: str):
         with rx.session() as session:
-            self.selected_order = session.exec(
-                select(PurchOrders).where(PurchOrders.orderno == orderno)
-            ).first()
+            query = select(PurchOrders.orderno,
+                           PurchOrders.orderref,
+                           PurchOrders.requisitionno,
+                           PurchOrders.urltracking,
+                           PurchOrders.supplierno,
+                           PurchOrders.deladd1,
+                           PurchOrders.deladd2,
+                           PurchOrders.comments,
+                           PurchOrders.orddate
+                           ).where(PurchOrders.orderno == orderno)
+
+            results = session.exec(query).first()
+
+            self.selected_order = PurchOrdersModalDisplay(
+                orderno=results[0],
+                orderref=results[1],
+                requisitionno=results[2],
+                urltracking=results[3],
+                supplierno=results[4],
+                deladd1=results[5],
+                deladd2=results[6],
+                comments=results[7],
+                orddate=str(results[8]))
 
     @rx.event
     async def handle_delivered(self, orderno: str):
         with rx.session() as session:
-            order = session.exec(
-                select(PurchOrders).where(PurchOrders.orderno == orderno)
-            ).first()
-            order.status = "Completed"
-            session.commit()
+            order = session.get(PurchOrders, orderno)
+            if order:
+                order.status = "Completed"
+                session.add(order)
+                session.commit()
+
+        # Refresh the orders list
         return States.get_all_purchs
 
     @rx.event

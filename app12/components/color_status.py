@@ -26,7 +26,7 @@ def _badge_heads(icon: str, text: str):
     )
 
 
-def status_button_heads(n_orders: str, supplierid: str, name: str):
+def status_button_heads(n_orders: str, name: str):
     badge_mapping = {
         "0": ("ban", "0", "#E52B50"),
         "1": ("ban", "1", "#E52B50"),

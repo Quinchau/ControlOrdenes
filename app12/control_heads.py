@@ -24,7 +24,8 @@ def index() -> rx.Component:
                     ),
 
                     rx.heading(
-                        'Heads Results', align='center')
+                        'Heads Results', align='center'),
+                    id="my-heading-in-control_heads"
                 ),
                 rx.hstack(
                     filter_component(
