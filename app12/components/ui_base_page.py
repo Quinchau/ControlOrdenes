@@ -4,9 +4,8 @@ from .navbar import navbar
 
 
 def base_page(child: rx.Component, *args, **kwargs) -> rx.Component:
-    return rx.container(
+    return rx.fragment(
         navbar(),
         child,
         rx.logo(),
-        rx.color_mode.button(position="bottom-left"),
     )

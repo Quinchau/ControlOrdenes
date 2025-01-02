@@ -1,5 +1,6 @@
 import reflex as rx
 from rxconfig import config
+from ..backend.backend import States
 
 
 def navbar_link(text: str, url: str) -> rx.Component:
@@ -20,13 +21,15 @@ def navbar() -> rx.Component:
                         border_radius="25%",
                     ),
                     rx.heading(
-                        "Reflex", size="7", weight="bold"
+                        "to-do-easy", size="7", weight="bold"
                     ),
                     align_items="center",
                 ),
+                rx.color_mode.button(),
                 rx.hstack(
-                    navbar_link("Home", "/#"),
-                    navbar_link("About", "/#"),
+                    navbar_link("Home", "/"),
+                    navbar_link("Mary Kay", "/heads_admin"),
+                    navbar_link("Orders", "/control_heads"),
                     navbar_link("Pricing", "/#"),
                     navbar_link("Contact", "/#"),
                     spacing="5",
@@ -43,6 +46,7 @@ def navbar() -> rx.Component:
                 ),
                 justify="between",
                 align_items="center",
+                id="my-navbar-desktop"
             ),
         ),
         rx.mobile_and_tablet(
@@ -55,22 +59,27 @@ def navbar() -> rx.Component:
                         border_radius="25%",
                     ),
                     rx.heading(
-                        "Reflex", size="6", weight="bold"
+                        "to-do-easy", size="6", weight="bold"
                     ),
                     align_items="center",
                 ),
+                rx.color_mode.button(),
                 rx.menu.root(
                     rx.menu.trigger(
                         rx.icon("menu", size=30)
                     ),
                     rx.menu.content(
-                        rx.menu.item("Home"),
-                        rx.menu.item("About"),
-                        rx.menu.item("Pricing"),
-                        rx.menu.item("Contact"),
+                        rx.menu.item(rx.link("Home", href="/")),
+                        rx.menu.item(
+                            rx.link("Purchs Orders", href="purchs_page")),
+                        rx.menu.item(
+                            rx.link("Heads Controls", href="control_heads")),
+                        rx.menu.item(
+                            rx.link("Stock Low Fee", href="lowstockfee")),
                         rx.menu.separator(),
-                        rx.menu.item("Log in"),
-                        rx.menu.item("Sign up"),
+                        rx.menu.item(rx.link("Login", href="login")),
+                        rx.menu.item(
+                            "Sign Up", on_click=States.logout, cursor="pointer"),
                     ),
                     justify="end",
                 ),
@@ -84,4 +93,5 @@ def navbar() -> rx.Component:
         # top="0px",
         # z_index="5",
         width="100%",
+        id="my-container-navbar"
     )

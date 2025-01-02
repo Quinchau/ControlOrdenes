@@ -40,7 +40,8 @@ def index() -> rx.Component:
                 direction='column',
                 align='center',
                 on_mount=States.get_prod_lowstockfee,
-            ),
+                id="my-flex-applicable-fees"
+            )
         )
     )
 

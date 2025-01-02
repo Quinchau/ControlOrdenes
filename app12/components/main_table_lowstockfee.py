@@ -24,8 +24,8 @@ def row_table(item: dict) -> rx.Component:
         rx.table.cell(
             rx.image(
                 src=(item["image_url"]),
-                width="40px",
-                height="40px"
+                width="35px",
+                height="35px"
             )),
         rx.table.cell(rx.link(  # Usamos rx.link para que sea un enlace
             item["stockid"],
@@ -33,7 +33,6 @@ def row_table(item: dict) -> rx.Component:
             is_external=True  # Para que se abra en una nueva pestaña
         ),
             style={
-                "display": "flex",
                 "align-items": "center",
                 "height": "100%"
         }),

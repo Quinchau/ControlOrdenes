@@ -5,8 +5,7 @@ from sqlalchemy import select, and_, func
 from sqlalchemy.sql.expression import or_, not_
 import hashlib
 from typing import Optional
-from datetime import datetime
-from time import localtime, strftime
+from time import strftime
 
 
 class Suppliers(rx.Model, table=True):
@@ -17,6 +16,7 @@ class Suppliers(rx.Model, table=True):
     phn: str
     refaddress: str
     remittance: int
+    lastupdate: str
     monthly_orders_numbers: str
     monthly_fees: float
     monthly_orders_totals: float
@@ -147,6 +147,7 @@ class SuppliersDisplayItem(rx.Base):
     totalcompras: Optional[float] = None
     typename: str
     locations: str
+    lastupdate: Optional[str] = None
 
 
 class ChildrensOrdersDisplay(rx.Base):
@@ -252,7 +253,8 @@ class States(rx.State):
                                Suppliers.monthly_fees,
                                Suppliers.monthly_orders_totals,
                                Suppliertype.typename,
-                               Locations.loccode
+                               Locations.loccode,
+                               Suppliers.lastupdate
                                ).join(
                     Suppliertype, Suppliertype.typeid == Suppliers.supptype).join(Locations, Locations.locationname == Suppliertype.typename).where(
                     Suppliers.remittance == 1).order_by(Suppliers.monthly_orders_numbers)
@@ -268,9 +270,11 @@ class States(rx.State):
                     comisiones=row[3],
                     totalcompras=row[4],
                     typename=row[5],
-                    locations=row[6]
+                    locations=row[6],
+                    lastupdate=str(row[7]) if row[7] else None
                 ) for row in results
             ]
+
             # print(self.heads_suppliers)
             # print(f'Selec_location: {self.selected_location}')
 
@@ -622,3 +626,24 @@ class States(rx.State):
 
 def show_location(location: Locations):
     return location.loccode
+
+
+def alert_dialog(state):
+    return rx.alert_dialog.root(
+        rx.alert_dialog.content(
+            rx.alert_dialog.title("Status"),
+            rx.alert_dialog.description(state.dialog_message),
+            rx.flex(
+                rx.alert_dialog.action(
+                    rx.button("OK",
+                              on_click=state.set_show_dialog(False)
+                              ),
+                ),
+                spacing="3",
+                margin_top="16px",
+                justify="end",
+            ),
+            style={"max_width": 450},
+        ),
+        open=state.show_dialog,
+    )
