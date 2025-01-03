@@ -1,6 +1,6 @@
 import reflex as rx
 from ..backend.backend import SuppliersDisplayItem
-from ..backend.backend import States
+from ..backend.heads_backend import StatesHeads
 from ..components.modal_inputs_fees_purchs_total import modal_update_fees_comission
 from datetime import datetime
 
@@ -36,7 +36,13 @@ def row_table(item: SuppliersDisplayItem) -> rx.Component:
                     "Editar",
                     cursor="pointer",  # Hace que el cursor cambie al pasar por encima
                     # Cambia el color al pasar el mouse
-                    _hover={"color": "blue"}
+                    _hover={"color": "blue"},
+                    on_click=StatesHeads.initialize_state(
+                        item.nro_orders,
+                        item.totalcompras,
+                        item.comisiones
+                    )
+
                 )
             ),
             modal_update_fees_comission(

@@ -18,21 +18,21 @@ def modal_update_fees_comission(id, name, nro_orders, total, comissions) -> rx.C
                 rx.hstack(
                     rx.text("Childrens with Orders: "),
                     rx.input(
-                        value=nro_orders,
+                        value=StatesHeads.nro_orders,
                         on_change=StatesHeads.set_nro_orders
                     )
                 ),
                 rx.hstack(
                     rx.text("Total Amount: "),
                     rx.input(
-                        value=total,
+                        value=StatesHeads.total_orders,
                         on_change=StatesHeads.set_total_orders
                     )
                 ),
                 rx.hstack(
                     rx.text("Comissions: "),
                     rx.input(
-                        value=comissions,
+                        value=StatesHeads.comissions,
                         on_change=StatesHeads.set_comissions
                     )
                 ),

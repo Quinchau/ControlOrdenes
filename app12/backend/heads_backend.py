@@ -11,14 +11,11 @@ class StatesHeads(rx.State):
     dialog_message: str = ""
     show_dialog: bool = False
 
-    def set_nro_orders(self, value: str):
-        self.nro_orders = value
-
-    def set_total_orders(self, value: str):
-        self.total_orders = float(value)
-
-    def set_comissions(self, value: str):
-        self.comissions = float(value)
+    def initialize_state(self, nro_orders, total, comissions):
+        """Inicializar el estado con los valores del registro."""
+        self.nro_orders = nro_orders
+        self.total_orders = total
+        self.comissions = comissions
 
     @rx.event(background=True)
     async def update_comissions_amount_orders(self, id):
