@@ -157,6 +157,13 @@ class ChildrensOrdersDisplay(rx.Base):
     ordersmonth: str
 
 
+class ChildrensOrdersDisplayDetails(rx.Base):
+    childrenid: str
+    childrenname: str
+    parentname: str
+    ordersmonthdetails: Optional[str] = None
+
+
 class SearchResult(rx.Base):
     stockid: str
     description: str
@@ -179,6 +186,68 @@ class States(rx.State):
     heads_suppliers: list[SuppliersDisplayItem] = []
     order_by_head: list[Suppliers] = []
     children_orders: list[ChildrensOrdersDisplay] = []
+    children_orders_details: list[ChildrensOrdersDisplayDetails] = []
+
+    @rx.event(background=True)
+    async def get_children_orders_details(self, parentname: str):
+        async with self:
+            try:
+                with rx.session() as session:
+                    current_month = strftime("%Y-%m")
+
+                    # Subquery para obtener los IDs de los hijos
+                    subquery = select(Suppliers.supplierid).where(
+                        Suppliers.phn.ilike(f"%{parentname}%")
+                    )
+
+                    # Consulta principal con LEFT OUTER JOIN y exclusión de Hold/Canceled
+                    query = select(
+                        Suppliers.supplierid.label('padre_id'),
+                        Suppliers.suppname.label('padre_name'),
+                        Suppliers.phn.label('supervisor_name'),
+                        func.group_concat(
+                            PurchOrders.orderref).label('order_refs')
+                    ).outerjoin(
+                        PurchOrders,
+                        and_(
+                            PurchOrders.supplierno == Suppliers.supplierid,
+                            PurchOrders.orddate.like(f'{current_month}%'),
+                            not_(
+                                or_(
+                                    func.lower(PurchOrders.comments).like(
+                                        'hold'),
+                                    func.lower(PurchOrders.comments).like(
+                                        'canceled')
+                                )
+                            )
+                        )
+                    ).where(
+                        Suppliers.supplierid.in_(subquery)
+                    ).group_by(
+                        Suppliers.supplierid,
+                        Suppliers.suppname,
+                        Suppliers.phn
+                    )
+
+                    results = session.exec(query).all()
+                    self.children_orders_details = [
+                        ChildrensOrdersDisplayDetails(
+                            childrenid=row[0],
+                            childrenname=row[1],
+                            parentname=row[2],
+                            ordersmonthdetails=str(row[3]).replace(
+                                ',', ', ') if row[3] else ""
+                        ) for row in results
+                    ]
+
+                    # print("Query Results:", results)
+                    # print("Current Month:", current_month)
+
+            except Exception as e:
+                print(f"Error executing query: {e}")
+
+            except Exception as e:
+                print(f"Error executing query: {e}")
 
     @rx.event(background=True)
     async def get_children_orders(self, parentname: str):
@@ -233,15 +302,12 @@ class States(rx.State):
 
                     # print("Query Results:", results)
                     # print("Current Month:", current_month)
-                    yield
 
             except Exception as e:
                 print(f"Error executing query: {e}")
-                yield
 
             except Exception as e:
                 print(f"Error executing query: {e}")
-                yield
 
     @rx.event(background=True)
     async def get_all_heads(self):
