@@ -6,6 +6,7 @@ from sqlalchemy.sql.expression import or_, not_
 import hashlib
 from typing import Optional
 from time import strftime
+from datetime import datetime, timedelta
 
 
 class Suppliers(rx.Model, table=True):
@@ -193,7 +194,8 @@ class States(rx.State):
         async with self:
             try:
                 with rx.session() as session:
-                    current_month = strftime("%Y-%m")
+                    thirty_days_ago = datetime.now() - timedelta(days=32)
+                    current_date = datetime.now()
 
                     # Subquery para obtener los IDs de los hijos
                     subquery = select(Suppliers.supplierid).where(
@@ -211,7 +213,8 @@ class States(rx.State):
                         PurchOrders,
                         and_(
                             PurchOrders.supplierno == Suppliers.supplierid,
-                            PurchOrders.orddate.like(f'{current_month}%'),
+                            PurchOrders.orddate.between(
+                                thirty_days_ago, current_date),
                             not_(
                                 or_(
                                     func.lower(PurchOrders.comments).like(
@@ -227,6 +230,8 @@ class States(rx.State):
                         Suppliers.supplierid,
                         Suppliers.suppname,
                         Suppliers.phn
+                    ).order_by(  # Added order by clause
+                        PurchOrders.orderref.asc()
                     )
 
                     results = session.exec(query).all()

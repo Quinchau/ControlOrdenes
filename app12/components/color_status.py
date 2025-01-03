@@ -68,7 +68,7 @@ def status_button(status: str, orderno: str):
     icon, text, color = badge_mapping.get(
         status, ("loader", "On the way", "#FFF8DC"))
 
-    if status == "Delivered":
+    if status == "Delivered" or status == "On the way":
         return rx.dialog.root(
             rx.dialog.trigger(
                 rx.button(
