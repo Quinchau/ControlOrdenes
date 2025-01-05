@@ -54,6 +54,25 @@ def modal_update_fees_comission(id, name, nro_orders, total, comissions) -> rx.C
                     spacing="3",
                     width="100%"
                 ),
+                rx.hstack(
+                    rx.switch(
+                        checked=States.show_current_month,
+                        on_change=States.toggle_time_period,
+                    ),
+                    rx.badge(
+                        rx.cond(
+                            States.show_current_month,
+                            "Mes Actual",
+                            "Últimos 30 días"
+
+                        )
+                    ),
+
+                    width="100%",
+                    justify="end",
+                    spacing="3",
+                    align_items="center",
+                ),
 
                 # Lista de Children
                 rx.dialog.description(

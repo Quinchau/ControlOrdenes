@@ -40,7 +40,9 @@ def row_table(item: SuppliersDisplayItem) -> rx.Component:
                         item.nro_orders,
                         item.totalcompras,
                         item.comisiones),
-                        States.get_children_orders_details(item.name)
+                        States.get_children_orders_details(item.name),
+                        lambda: States.set_show_current_month_and_reload(
+                            True, item.name)
                     ]
                 )
             ),

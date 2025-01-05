@@ -188,15 +188,47 @@ class States(rx.State):
     order_by_head: list[Suppliers] = []
     children_orders: list[ChildrensOrdersDisplay] = []
     children_orders_details: list[ChildrensOrdersDisplayDetails] = []
+    show_current_month: bool = True
+    current_parentname: str = ""
+
+    @rx.event
+    async def toggle_time_period(self):
+        """Toggle between current month and last 30 days view."""
+        self.show_current_month = not self.show_current_month
+        return States.get_children_orders_details(self.current_parentname)
+
+    @rx.event
+    async def on_modal_open(self):
+        async with self:
+            self.show_current_month = True
+            if self.current_parentname:
+                await self.get_children_orders_details(self.current_parentname)
+
+    @rx.event(background=True)
+    async def set_show_current_month_and_reload(self, value: bool, parentname: str):
+        async with self:
+            self.show_current_month = value
+            return States.get_children_orders_details(parentname)
 
     @rx.event(background=True)
     async def get_children_orders_details(self, parentname: str):
         async with self:
             try:
+                self.current_parentname = parentname
                 with rx.session() as session:
-                    thirty_days_ago = datetime.now() - timedelta(days=32)
-                    current_date = datetime.now()
-
+                    today = datetime.now()
+                    if self.show_current_month:
+                        # Obtener el primer día del mes actual
+                        start_date = today.replace(
+                            day=1, hour=0, minute=0, second=0, microsecond=0)
+                        current_date = today
+                        # Imprimir para depuración
+                        # print(f"Fecha inicio mes actual: {start_date}")
+                        # print(f"Fecha fin mes actual: {current_date}")
+                    else:
+                        # Last 30 days logic
+                        start_date = datetime.now() - timedelta(days=32)
+                        current_date = today
                     # Subquery para obtener los IDs de los hijos
                     subquery = select(Suppliers.supplierid).where(
                         Suppliers.phn.ilike(f"%{parentname}%")
@@ -214,7 +246,7 @@ class States(rx.State):
                         and_(
                             PurchOrders.supplierno == Suppliers.supplierid,
                             PurchOrders.orddate.between(
-                                thirty_days_ago, current_date),
+                                start_date, current_date),
                             not_(
                                 or_(
                                     func.lower(PurchOrders.comments).like(
@@ -230,26 +262,20 @@ class States(rx.State):
                         Suppliers.supplierid,
                         Suppliers.suppname,
                         Suppliers.phn
-                    ).order_by(  # Added order by clause
+                    ).order_by(
                         PurchOrders.orderref.asc()
                     )
 
-                    results = session.exec(query).all()
-                    self.children_orders_details = [
-                        ChildrensOrdersDisplayDetails(
-                            childrenid=row[0],
-                            childrenname=row[1],
-                            parentname=row[2],
-                            ordersmonthdetails=str(row[3]).replace(
-                                ',', ', ') if row[3] else ""
-                        ) for row in results
-                    ]
-
-                    # print("Query Results:", results)
-                    # print("Current Month:", current_month)
-
-            except Exception as e:
-                print(f"Error executing query: {e}")
+                results = session.exec(query).all()
+                self.children_orders_details = [
+                    ChildrensOrdersDisplayDetails(
+                        childrenid=row[0],
+                        childrenname=row[1],
+                        parentname=row[2],
+                        ordersmonthdetails=str(row[3]).replace(
+                            ',', ', ') if row[3] else ""
+                    ) for row in results
+                ]
 
             except Exception as e:
                 print(f"Error executing query: {e}")
