@@ -9,7 +9,31 @@ class StatesHeads(rx.State):
     total_orders: float = 0.0
     comissions: float = 0.0
     dialog_message: str = ""
+    show_dialog_pdf_upload: bool = False
     show_dialog: bool = False
+    pdf_path: str = ""
+    user_id: str = ""
+
+    @rx.event
+    async def set_user_id(self, user_id: str):
+        self.user_id = user_id
+
+    @rx.event
+    async def handle_pdf_upload(self, files: list[rx.UploadFile]):
+        if not files:
+            return rx.toast.error("No se seleccionó ningún archivo")
+        file = files[0]
+        upload_data = await file.read()
+        filename = f"{self.user_id}_document.pdf"
+        outfile = rx.get_upload_dir() / filename
+        with outfile.open("wb") as file_object:
+            file_object.write(upload_data)
+        self.pdf_path = filename
+        return rx.toast.success("Archivo subido correctamente")
+
+    @rx.event
+    def pdf_upload(self, value: bool):
+        self.show_dialog_pdf_upload = value
 
     def initialize_state(self, nro_orders, total, comissions):
         """Inicializar el estado con los valores del registro."""
@@ -33,9 +57,6 @@ class StatesHeads(rx.State):
 
                     session.exec(stmt)
                     session.commit()
-
-                    self.dialog_message = "Actualización exitosa!"
-                    self.show_dialog = True
 
                 except Exception as e:
                     session.rollback()

@@ -11,11 +11,21 @@ def table_heads(list_heads: list[SuppliersDisplayItem]) -> rx.Component:
         rx.table.header(
             rx.table.row(
                 rx.table.column_header_cell('Name'),
-                rx.table.column_header_cell('Total'),
+                rx.table.column_header_cell(
+                    'Total', display=["none", "none", "table-cell", "table-cell"]),
+
                 rx.table.column_header_cell('Fee'),
-                rx.table.column_header_cell('Qty Ordens'),
-                rx.table.column_header_cell('Edit'),
-                rx.table.column_header_cell('Last Update'),
+
+                rx.table.column_header_cell('Qty Ordens', display=[
+                                            "none", "none", "table-cell", "table-cell"]),
+
+                rx.table.column_header_cell(
+                    'Edit', display=["none", "none", "table-cell", "table-cell"]),
+
+                rx.table.column_header_cell('Last Update', display=[
+                                            "none", "none", "table-cell", "table-cell"]),
+
+                rx.table.column_header_cell('Fess', align="center"),
             )
         ), rx.table.body(
             rx.foreach(list_heads, row_table)
@@ -26,9 +36,11 @@ def table_heads(list_heads: list[SuppliersDisplayItem]) -> rx.Component:
 def row_table(item: SuppliersDisplayItem) -> rx.Component:
     return rx.table.row(
         rx.table.cell(item.name),
-        rx.table.cell(item.totalcompras, align="right"),
+        rx.table.cell(item.totalcompras, align="right", display=[
+                      "none", "none", "table-cell", "table-cell"]),
         rx.table.cell(item.comisiones, align="right"),
-        rx.table.cell(item.nro_orders, align="center"),
+        rx.table.cell(item.nro_orders, align="center", display=[
+                      "none", "none", "table-cell", "table-cell"]),
         rx.table.cell(rx.dialog.root(
             rx.dialog.trigger(
                 rx.text(
@@ -40,9 +52,8 @@ def row_table(item: SuppliersDisplayItem) -> rx.Component:
                         item.nro_orders,
                         item.totalcompras,
                         item.comisiones),
-                        States.get_children_orders_details(item.name),
-                        lambda: States.set_show_current_month_and_reload(
-                            True, item.name)
+                        States.set_current_parentname(item.name),
+                        States.toggle_time_period(True)
                     ]
                 )
             ),
@@ -53,13 +64,25 @@ def row_table(item: SuppliersDisplayItem) -> rx.Component:
                 item.totalcompras,
                 item.comisiones
             )
-        )
+        ), display=["none", "none", "table-cell", "table-cell"]
         ),
         rx.table.cell(
             rx.cond(
                 item.lastupdate == datetime.now().date(),
                 rx.text("Hoy"),
                 rx.text(item.lastupdate)
-            )
-        )
+            ), display=["none", "none", "table-cell", "table-cell"]
+        ),
+        rx.table.cell(
+            rx.dialog.root(
+                rx.dialog.trigger(
+                    rx.text(
+                        "Ver PDF",
+                        cursor="pointer",
+                        _hover={"color": "blue"},
+                        align="center"
+                    )
+                )
+            ), align="center"
+        ),
     )

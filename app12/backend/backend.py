@@ -192,23 +192,14 @@ class States(rx.State):
     current_parentname: str = ""
 
     @rx.event
-    async def toggle_time_period(self):
+    async def toggle_time_period(self, value: bool):
         """Toggle between current month and last 30 days view."""
-        self.show_current_month = not self.show_current_month
+        self.show_current_month = value
         return States.get_children_orders_details(self.current_parentname)
 
     @rx.event
-    async def on_modal_open(self):
-        async with self:
-            self.show_current_month = True
-            if self.current_parentname:
-                await self.get_children_orders_details(self.current_parentname)
-
-    @rx.event(background=True)
-    async def set_show_current_month_and_reload(self, value: bool, parentname: str):
-        async with self:
-            self.show_current_month = value
-            return States.get_children_orders_details(parentname)
+    async def set_current_parentname(self, parentname: str):
+        self.current_parentname = parentname
 
     @rx.event(background=True)
     async def get_children_orders_details(self, parentname: str):
@@ -218,18 +209,13 @@ class States(rx.State):
                 with rx.session() as session:
                     today = datetime.now()
                     if self.show_current_month:
-                        # Obtener el primer día del mes actual
                         start_date = today.replace(
                             day=1, hour=0, minute=0, second=0, microsecond=0)
                         current_date = today
-                        # Imprimir para depuración
-                        # print(f"Fecha inicio mes actual: {start_date}")
-                        # print(f"Fecha fin mes actual: {current_date}")
                     else:
-                        # Last 30 days logic
                         start_date = datetime.now() - timedelta(days=32)
                         current_date = today
-                    # Subquery para obtener los IDs de los hijos
+
                     subquery = select(Suppliers.supplierid).where(
                         Suppliers.phn.ilike(f"%{parentname}%")
                     )

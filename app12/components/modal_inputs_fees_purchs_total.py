@@ -1,6 +1,6 @@
 import reflex as rx
-from ..backend.heads_backend import StatesHeads
-from ..backend.backend import States
+from app12.backend.heads_backend import StatesHeads
+from app12.backend.backend import States
 
 
 def modal_update_fees_comission(id, name, nro_orders, total, comissions) -> rx.Component:
@@ -55,6 +55,66 @@ def modal_update_fees_comission(id, name, nro_orders, total, comissions) -> rx.C
                     width="100%"
                 ),
                 rx.hstack(
+                    rx.dialog.root(
+                        rx.dialog.trigger(
+                            rx.text(
+                                "Actualizar Pdf Comisiones",
+                                cursor="pointer",
+                                _hover={"color": "blue"},
+                                align="center",
+                                on_click=[
+                                    StatesHeads.set_user_id(id),
+                                    StatesHeads.pdf_upload(True)
+                                ]
+                            )
+                        ),
+                        rx.dialog.content(
+                            rx.dialog.title("Subir PDF"),
+                            rx.dialog.description(
+                                "Selecciona el archivo PDF para subir"),
+                            rx.vstack(
+                                rx.upload(
+                                    rx.vstack(
+                                        rx.button(
+                                            "Seleccionar PDF",
+                                            color="rgb(107,99,246)",
+                                            bg="white",
+                                            border="1px solid rgb(107,99,246)"),
+                                        rx.text(
+                                            "Arrastra y suelta el PDF aquí o haz clic para seleccionar"
+                                        ),
+                                        align="center"
+                                    ),
+                                    id="pdf_upload",
+                                    max_files=1,
+                                    accept={
+                                        "application/pdf": [".pdf"]
+                                    },
+                                    on_drop=StatesHeads.handle_pdf_upload(
+                                        rx.upload_files(upload_id="pdf_upload")
+                                    ),
+                                    border="1px dotted rgb(107,99,246)",
+                                    padding="5em",
+                                ),
+                                rx.text(rx.selected_files("pdf_upload")),
+                                rx.flex(
+                                    rx.dialog.close(
+                                        rx.button(
+                                            "Cancelar",
+                                            variant="soft",
+                                            color_scheme="gray",
+                                        ),
+                                    ),
+                                    rx.dialog.close(
+                                        rx.button("Cerrar"),
+                                    ),
+                                    spacing="3",
+                                    margin_top="16px",
+                                    justify="end",
+                                ),
+                            )
+                        )
+                    ),
                     rx.switch(
                         checked=States.show_current_month,
                         on_change=States.toggle_time_period,

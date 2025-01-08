@@ -3,3 +3,5 @@
 assets/external/
 __pycache__/
 .web
+uploaded_files
+logica.txt
