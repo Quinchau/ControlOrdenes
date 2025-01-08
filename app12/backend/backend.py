@@ -1,5 +1,5 @@
 import reflex as rx
-from sqlmodel import Field, select, Relationship, update, func
+from sqlmodel import SQLModel, Field, select, Relationship, update, func
 import sqlalchemy.orm as sqlorm
 from sqlalchemy import select, and_, func
 from sqlalchemy.sql.expression import or_, not_
@@ -9,7 +9,7 @@ from time import strftime
 from datetime import datetime, timedelta
 
 
-class Suppliers(rx.Model, table=True):
+class Suppliers(SQLModel, table=True):
     supplierid: str = Field(default=None, primary_key=True)
     suppname: str
     currcode: str
@@ -25,17 +25,17 @@ class Suppliers(rx.Model, table=True):
         back_populates="suppliername")
 
 
-class Suppliertype(rx.Model, table=True):
+class Suppliertype(SQLModel, table=True):
     typeid: str = Field(default=None, primary_key=True)
     typename: str
 
 
-class Locations(rx.Model, table=True):
+class Locations(SQLModel, table=True):
     loccode: str = Field(default=None, primary_key=True)
     locationname: str
 
 
-class PurchOrders(rx.Model, table=True):
+class PurchOrders(SQLModel, table=True):
     orderno: str = Field(default=None, primary_key=True)
     supplierno: str = Field(default=None, foreign_key="suppliers.supplierid")
     comments: str
@@ -52,13 +52,13 @@ class PurchOrders(rx.Model, table=True):
         back_populates="purchorders_list")
 
 
-class PurchOrdersDetails(rx.Model, table=True):
+class PurchOrdersDetails(SQLModel, table=True):
     orderno: str = Field(default=None, primary_key=True)
     itemdescription: str
     unitprice: str
 
 
-class Www_users(rx.Model, table=True):
+class Www_users(SQLModel, table=True):
     userid: str = Field(default=None, primary_key=True)
     password: str
     realname: str
@@ -80,7 +80,7 @@ class Www_users(rx.Model, table=True):
     currencyuser: str
 
 
-class Locstock(rx.Model, table=True):
+class Locstock(SQLModel, table=True):
     loccode: str
     stockid: str = Field(default=None, primary_key=True,
                          foreign_key="stockmaster.stockid")
@@ -92,7 +92,7 @@ class Locstock(rx.Model, table=True):
         back_populates="loc_stocks")
 
 
-class StockMaster(rx.Model, table=True):
+class StockMaster(SQLModel, table=True):
     stockid: str = Field(default=None, primary_key=True)
     categoryid: str
     description: str
@@ -102,7 +102,7 @@ class StockMaster(rx.Model, table=True):
     loc_stocks: list["Locstock"] = Relationship(back_populates="stock_master")
 
 
-class Stock_Image(rx.Model, table=True):
+class Stock_Image(SQLModel, table=True):
     id_image: int = Field(default=None, primary_key=True)
     id_product: str = Field(default=None, foreign_key="stockmaster.stockid")
     position: int
