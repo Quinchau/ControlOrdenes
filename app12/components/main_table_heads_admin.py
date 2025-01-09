@@ -74,15 +74,15 @@ def row_table(item: SuppliersDisplayItem) -> rx.Component:
             ), display=["none", "none", "table-cell", "table-cell"]
         ),
         rx.table.cell(
-            rx.dialog.root(
-                rx.dialog.trigger(
-                    rx.text(
-                        "Ver PDF",
-                        cursor="pointer",
-                        _hover={"color": "blue"},
-                        align="center"
-                    )
-                )
-            ), align="center"
+            rx.link(
+                rx.text(
+                    "Ver PDF",
+                    cursor="pointer",
+                    _hover={"color": "blue"},
+                ),
+                href=f"http://localhost:8000/api/supplier-doc/{item.id}",
+                target="_blank"
+            ),
+            align="center"
         ),
     )

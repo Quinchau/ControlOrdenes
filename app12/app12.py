@@ -1,7 +1,9 @@
 import reflex as rx
 from rxconfig import config
+from fastapi import FastAPI
 from .backend.backend import States
 from .components.ui_base_page import base_page
+from .api.views.download_pdf_commission import get_supplier_doc
 
 
 class State(rx.State):
@@ -62,3 +64,5 @@ def index() -> rx.Component:
 
 
 app = rx.App()
+app.api.add_api_route(
+    "/api/supplier-doc/{supplier_id}", get_supplier_doc, methods=["GET"])
