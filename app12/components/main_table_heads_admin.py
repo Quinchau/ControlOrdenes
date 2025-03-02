@@ -4,6 +4,10 @@ from ..backend.heads_backend import StatesHeads
 from ..components.modal_inputs_fees_purchs_total import modal_update_fees_comission
 from datetime import datetime
 from ..backend.backend import States
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 def table_heads(list_heads: list[SuppliersDisplayItem]) -> rx.Component:
@@ -14,7 +18,7 @@ def table_heads(list_heads: list[SuppliersDisplayItem]) -> rx.Component:
                 rx.table.column_header_cell(
                     'Total', display=["none", "none", "table-cell", "table-cell"]),
 
-                rx.table.column_header_cell('Fee'),
+                rx.table.column_header_cell('Current Commisions'),
 
                 rx.table.column_header_cell('Qty Ordens', display=[
                                             "none", "none", "table-cell", "table-cell"]),
@@ -25,7 +29,7 @@ def table_heads(list_heads: list[SuppliersDisplayItem]) -> rx.Component:
                 rx.table.column_header_cell('Last Update', display=[
                                             "none", "none", "table-cell", "table-cell"]),
 
-                rx.table.column_header_cell('Fess', align="center"),
+                rx.table.column_header_cell('Statement', align="center"),
             )
         ), rx.table.body(
             rx.foreach(list_heads, row_table)
@@ -80,7 +84,7 @@ def row_table(item: SuppliersDisplayItem) -> rx.Component:
                     cursor="pointer",
                     _hover={"color": "blue"},
                 ),
-                href=f"http://localhost:8000/api/supplier-doc/{item.id}",
+                href=f"{os.getenv('API_URL')}/api/supplier-doc/{item.id}",
                 target="_blank"
             ),
             align="center"

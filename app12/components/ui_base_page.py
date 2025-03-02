@@ -7,5 +7,4 @@ def base_page(child: rx.Component, *args, **kwargs) -> rx.Component:
     return rx.fragment(
         navbar(),
         child,
-        rx.logo(),
     )

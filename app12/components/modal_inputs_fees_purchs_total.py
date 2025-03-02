@@ -63,8 +63,7 @@ def modal_update_fees_comission(id, name, nro_orders, total, comissions) -> rx.C
                                 _hover={"color": "blue"},
                                 align="center",
                                 on_click=[
-                                    StatesHeads.set_user_id(id),
-                                    StatesHeads.pdf_upload(True)
+                                    StatesHeads.set_user_id(id)
                                 ]
                             )
                         ),

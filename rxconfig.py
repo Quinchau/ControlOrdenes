@@ -1,4 +1,8 @@
 import reflex as rx
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 config = rx.Config(
     app_name="app12",
@@ -6,4 +10,5 @@ config = rx.Config(
     backend_host="0.0.0.0",
     frontend_port=3000,
     backend_port=8000,
+    env_file=".env"
 )

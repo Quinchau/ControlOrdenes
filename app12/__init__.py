@@ -7,3 +7,4 @@ from .index_admin import index
 from .marykay_index import index
 from .control_heads import index
 from .heads_admin import index
+from .tasks import index

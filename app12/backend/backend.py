@@ -8,6 +8,8 @@ from typing import Optional
 from time import strftime
 from datetime import datetime, timedelta
 
+# En: /home/charlie_ubu/proyectos/app12/app12/backend/backend.py
+
 
 class Suppliers(SQLModel, table=True):
     supplierid: str = Field(default=None, primary_key=True)
@@ -23,6 +25,16 @@ class Suppliers(SQLModel, table=True):
     monthly_orders_totals: float
     purchorders_list: list["PurchOrders"] = Relationship(
         back_populates="suppliername")
+
+
+class Task(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    description: str = Field(max_length=255)
+    # Podrías usar un Enum aquí si prefieres
+    status: str = Field(default="Pending")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = Field(default=None)
+    user_id: str = Field(max_length=20, foreign_key="www_users.userid")
 
 
 class Suppliertype(SQLModel, table=True):
@@ -190,6 +202,90 @@ class States(rx.State):
     children_orders_details: list[ChildrensOrdersDisplayDetails] = []
     show_current_month: bool = True
     current_parentname: str = ""
+    tasks: list[Task] = []  # Lista de tareas
+    new_task_description: str = ""
+
+    @rx.event(background=True)
+    async def load_tasks(self):
+        """Cargar todas las tareas de la base de datos."""
+        async with self:
+            with rx.session() as session:
+                query = select(Task).order_by(Task.created_at.desc())
+                results = session.exec(
+                    query).scalars().all()  # Añadir .scalars()
+                self.tasks = results
+                print("Tasks loaded:", [vars(t) for t in self.tasks])
+
+    @rx.var(cache=True)
+    def formatted_tasks(self) -> list[dict[str, str]]:
+        """Devuelve las tareas con fechas preformateadas, ordenadas por estado y fechas."""
+        if not self.tasks:
+            return []
+
+        # Dividir tareas en "Pending" y "Completed"
+        pending_tasks = [t for t in self.tasks if t.status == "Pending"]
+        completed_tasks = [t for t in self.tasks if t.status == "Completed"]
+
+        # Ordenar "Pending" por created_at ascendente (menos reciente primero)
+        pending_tasks.sort(key=lambda x: x.created_at)
+
+        # Ordenar "Completed" por updated_at descendente (más reciente primero), con None al final
+        completed_tasks.sort(key=lambda x: (
+            x.updated_at is None, x.updated_at), reverse=True)
+
+        # Combinar listas: primero Pending, luego Completed
+        sorted_tasks = pending_tasks + completed_tasks
+
+        # Formatear las tareas ordenadas
+        return [
+            {
+                "id": str(task.id),
+                "description": str(task.description),
+                "status": str(task.status),
+                "created_at": str(task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else "Sin fecha"),
+                "updated_at": str(task.updated_at.strftime('%Y-%m-%d %H:%M') if task.updated_at else "Sin actualizar"),
+                "user_id": str(task.user_id),
+            }
+            for task in sorted_tasks
+        ]
+
+    @rx.event(background=True)
+    async def create_task(self):
+        """Crear una nueva tarea."""
+        async with self:
+            if not self.new_task_description:
+                return rx.window_alert("Por favor, ingresa una descripción para la tarea.")
+            if not self.auth_token:
+                return rx.redirect("/login")
+
+            with rx.session() as session:
+                new_task = Task(
+                    description=self.new_task_description,
+                    status="Pending",  # Usamos str directamente ya que no usas Enum aquí
+                    user_id=self.auth_token,  # Usuario autenticado
+                )
+                session.add(new_task)
+                session.commit()
+                self.new_task_description = ""  # Limpiar el campo
+                return States.load_tasks
+
+    @rx.event(background=True)
+    async def toggle_task_status(self, task_id: int):
+        """Cambiar el estado de una tarea."""
+        async with self:
+            with rx.session() as session:
+                task = session.get(Task, task_id)
+                if task:
+                    task.status = "Completed" if task.status == "Pending" else "Pending"
+                    task.updated_at = datetime.now()
+                    task.user_id = self.auth_token  # Registrar quién cambió el estado
+                    session.add(task)
+                    session.commit()
+                return States.load_tasks
+
+    def set_new_task_description(self, value: str):
+        """Actualizar la descripción de la nueva tarea."""
+        self.new_task_description = value
 
     @rx.event
     async def toggle_time_period(self, value: bool):
@@ -635,7 +731,7 @@ class States(rx.State):
         self.selected_location = "ALL"
         return States.get_all_purchs
 
-    @rx.var
+    @rx.var(cache=False)
     def last_four_digits(self) -> str:
         """A computed var that returns the last 4 digits."""
         return self.requisitionno[-4:]

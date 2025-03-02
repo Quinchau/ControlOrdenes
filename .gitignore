@@ -5,3 +5,6 @@ __pycache__/
 .web
 uploaded_files
 logica.txt
+.env
+*.pyc
+alembic.ini

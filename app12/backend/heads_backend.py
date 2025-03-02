@@ -25,11 +25,14 @@ class StatesHeads(rx.State):
         file = files[0]
         upload_data = await file.read()
         filename = f"{self.user_id}_document.pdf"
-        outfile = rx.get_upload_dir() / filename
-        with outfile.open("wb") as file_object:
-            file_object.write(upload_data)
+        outfile = rx.get_upload_dir() / f"{self.user_id}_document.pdf"
+        try:
+            with outfile.open("wb") as file_object:
+                file_object.write(upload_data)
+        except OSError as e:
+            return rx.toast.error(f"Error al subir el archivo: {e}")
         self.pdf_path = filename
-        return rx.toast.success("Archivo subido correctamente")
+        return rx.toast.success(f"Archivo subido correctamente en: {outfile}")
 
     @rx.event
     def pdf_upload(self, value: bool):
