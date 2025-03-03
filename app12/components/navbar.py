@@ -78,6 +78,8 @@ def navbar() -> rx.Component:
                             rx.link("Heads Controls", href="control_heads")),
                         rx.menu.item(
                             rx.link("Stock Low Fee", href="lowstockfee")),
+                        rx.menu.item(
+                            rx.link("Tasks", href="tasks")),
                         rx.menu.separator(),
                         rx.menu.item(rx.link("Login", href="login")),
                         rx.menu.item(
