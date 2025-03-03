@@ -204,6 +204,7 @@ class States(rx.State):
     current_parentname: str = ""
     tasks: list[Task] = []  # Lista de tareas
     new_task_description: str = ""
+    dialog_open: bool = False  # Estado para controlar el modal de tareas
 
     @rx.event(background=True)
     async def load_tasks(self):
@@ -214,13 +215,19 @@ class States(rx.State):
                 results = session.exec(
                     query).scalars().all()  # Añadir .scalars()
                 self.tasks = results
-                print("Tasks loaded:", [vars(t) for t in self.tasks])
+                # print("Tasks loaded:", [vars(t) for t in self.tasks])
 
     @rx.var(cache=True)
     def formatted_tasks(self) -> list[dict[str, str]]:
-        """Devuelve las tareas con fechas preformateadas, ordenadas por estado y fechas."""
+        """Devuelve las primeras 100 tareas con fechas y nombres de usuarios para creación y actualización."""
         if not self.tasks:
             return []
+
+        # Obtener nombres de usuarios desde Www_users
+        with rx.session() as session:
+            users = session.exec(
+                select(Www_users.userid, Www_users.realname)).all()
+            user_dict = {user.userid: user.realname for user in users}
 
         # Dividir tareas en "Pending" y "Completed"
         pending_tasks = [t for t in self.tasks if t.status == "Pending"]
@@ -233,8 +240,8 @@ class States(rx.State):
         completed_tasks.sort(key=lambda x: (
             x.updated_at is None, x.updated_at), reverse=True)
 
-        # Combinar listas: primero Pending, luego Completed
-        sorted_tasks = pending_tasks + completed_tasks
+        # Combinar listas: primero Pending, luego Completed, y limitar a 100
+        sorted_tasks = (pending_tasks + completed_tasks)[:100]
 
         # Formatear las tareas ordenadas
         return [
@@ -242,27 +249,37 @@ class States(rx.State):
                 "id": str(task.id),
                 "description": str(task.description),
                 "status": str(task.status),
-                "created_at": str(task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else "Sin fecha"),
-                "updated_at": str(task.updated_at.strftime('%Y-%m-%d %H:%M') if task.updated_at else "Sin actualizar"),
+                "created_at": str(
+                    f"{task.created_at.strftime('%Y-%m-%d %H:%M')} by {user_dict.get(task.user_id, 'Desconocido')}"
+                    if task.created_at else "Sin fecha"
+                ),
+                "updated_at": str(
+                    f"{task.updated_at.strftime('%Y-%m-%d %H:%M')} by {user_dict.get(task.user_id, 'Desconocido')}"
+                    if task.updated_at else "Pending"
+                ),
                 "user_id": str(task.user_id),
             }
             for task in sorted_tasks
         ]
 
+    def toggle_dialog(self, is_open: bool):
+        self.dialog_open = is_open
+
     @rx.event(background=True)
     async def create_task(self):
-        """Crear una nueva tarea."""
+        """Crear una nueva tarea con validación mejorada."""
         async with self:
-            if not self.new_task_description:
-                return rx.window_alert("Por favor, ingresa una descripción para la tarea.")
+            # Validar si la descripción está vacía o solo tiene espacios
+            if not self.new_task_description or self.new_task_description.strip() == "":
+                return rx.window_alert("Por favor, ingresa una descripción válida para la tarea.")
             if not self.auth_token:
                 return rx.redirect("/login")
 
             with rx.session() as session:
                 new_task = Task(
-                    description=self.new_task_description,
-                    status="Pending",  # Usamos str directamente ya que no usas Enum aquí
-                    user_id=self.auth_token,  # Usuario autenticado
+                    description=self.new_task_description.strip(),  # Eliminar espacios innecesarios
+                    status="Pending",
+                    user_id=self.auth_token,
                 )
                 session.add(new_task)
                 session.commit()
@@ -271,12 +288,12 @@ class States(rx.State):
 
     @rx.event(background=True)
     async def toggle_task_status(self, task_id: int):
-        """Cambiar el estado de una tarea."""
+        """Cambiar el estado de una tarea de 'Pending' a 'Completed', sin permitir el regreso a 'Pending'."""
         async with self:
             with rx.session() as session:
                 task = session.get(Task, task_id)
-                if task:
-                    task.status = "Completed" if task.status == "Pending" else "Pending"
+                if task and task.status == "Pending":  # Solo permitir cambio si está en "Pending"
+                    task.status = "Completed"
                     task.updated_at = datetime.now()
                     task.user_id = self.auth_token  # Registrar quién cambió el estado
                     session.add(task)
