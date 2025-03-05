@@ -18,8 +18,6 @@ def index() -> rx.Component:
                         margin="0",
                         padding="0",
                     ),
-
-                    # Vista para escritorio
                     rx.desktop_only(
                         rx.container(
                             rx.foreach(
@@ -33,6 +31,10 @@ def index() -> rx.Component:
                                             "green"
                                         ),
                                     ),
+                                    rx.text(
+                                        f"Created: {task['created_at']}",
+                                        size="1",
+                                    ),
                                     rx.hstack(
                                         rx.text(
                                             f"Modify: {task['updated_at']}",
@@ -45,42 +47,63 @@ def index() -> rx.Component:
                                                 color_scheme="green",
                                                 variant="soft",
                                                 size="3",
-                                                cursor="default",  # No clicable
+                                                cursor="default",
                                             ),
-                                            rx.badge(
-                                                "Pendiente",
-                                                color_scheme="red",
-                                                variant="soft",
-                                                size="3",
-                                                on_click=lambda: States.toggle_task_status(
-                                                    task["id"]),
-                                                cursor="pointer"
+                                            rx.alert_dialog.root(
+                                                rx.alert_dialog.trigger(
+                                                    rx.badge(
+                                                        "Pendiente",
+                                                        color_scheme="red",
+                                                        variant="soft",
+                                                        size="3",
+                                                        cursor="pointer"
+                                                    ),
+                                                ),
+                                                rx.alert_dialog.content(
+                                                    rx.alert_dialog.title(
+                                                        "Confirmar Acción"),
+                                                    rx.alert_dialog.description(
+                                                        "¿Está seguro de marcar esta tarea como terminada?"
+                                                    ),
+                                                    rx.flex(
+                                                        rx.alert_dialog.cancel(
+                                                            rx.button("Cancelar", variant="soft",
+                                                                      color_scheme="gray"),
+                                                        ),
+                                                        rx.alert_dialog.action(
+                                                            rx.button(
+                                                                "Confirmar",
+                                                                color_scheme="red",
+                                                                on_click=States.toggle_task_status(
+                                                                    task["id"]),
+                                                            ),
+                                                        ),
+                                                        spacing="3",
+                                                        justify="end",
+                                                    ),
+                                                ),
                                             ),
                                         ),
-                                        width="100%",  # El hstack ocupa todo el ancho
-                                        justify="between",  # Justificar elementos a los extremos
-                                        align="center",  # Alinear verticalmente el texto y el badge
-                                        spacing="0",  # Eliminar cualquier espacio adicional entre los elementos
-                                    ),
-                                    rx.text(
-                                        rx.cond(
-                                            task["updated_at"] != "Sin actualizar",
-                                            f"Actualizado: {task['updated_at']}",
-                                            "Sin actualizar"
-                                        ),
-                                        size="2"
+                                        width="100%",
+                                        justify="between",
+                                        align="center",
+                                        spacing="0",
                                     ),
                                     spacing="2",
                                     padding="10px 0",
-                                    width="100%",
+                                    width="80%",
                                     margin="0",
                                     border_bottom="1px solid #eee",
                                     key=f"task-{index}-desktop",
                                 ),
                             ),
-                            size="2",
+                            size="3",
                             center_content=True,
+                            width="100%"
                         ),
+                        width="100%",
+                        justify_content="center",
+                        align_items="center"
                     ),
 
                     # Vista para tablet

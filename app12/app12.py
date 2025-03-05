@@ -3,21 +3,50 @@ from rxconfig import config
 from fastapi import FastAPI
 from .backend.backend import States
 from .components.ui_base_page import base_page
-from .api.views.download_pdf_commission import get_supplier_doc
+
+# Configurar la app con PWA
+app = rx.App(
+    head_components=[
+        rx.el.link(rel="manifest", href="/manifest.json"),
+        rx.script("""
+            console.log('Script de Reflex ejecutándose');
+            if ('serviceWorker' in navigator) {
+                console.log('Service Worker soportado en este navegador');
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => {
+                        console.log('Service Worker registrado con éxito. Scope:', reg.scope);
+                        if (reg.installing) {
+                            console.log('Service Worker en instalación');
+                        } else if (reg.waiting) {
+                            console.log('Service Worker instalado, en espera');
+                        } else if (reg.active) {
+                            console.log('Service Worker activo');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error al registrar Service Worker:', err.message);
+                        console.error('Detalles del error:', err);
+                    });
+            } else {
+                console.log('Service Worker no soportado en este navegador');
+            }
+        """)
+    ]
+)
+
+# Clase de estado (simplificada)
 
 
 class State(rx.State):
     """The app state."""
-
-    ...
+    auth_token: str = ""
 
 
 @rx.page(route="/", title="Home", on_load=States.check_auth)
 def index() -> rx.Component:
     return base_page(
         rx.cond(
-            States.auth_token != "",  # Check if token exists in LocalStorage
-            # Authenticated view
+            States.auth_token != "",
             rx.flex(
                 rx.vstack(
                     rx.button("Gestion Mary Kay",
@@ -58,11 +87,9 @@ def index() -> rx.Component:
                 ),
                 justify='center'
             ),
+        ),
 
-        )
     )
 
-
-app = rx.App()
-app.api.add_api_route(
-    "/api/supplier-doc/{supplier_id}", get_supplier_doc, methods=["GET"])
+# No incluimos las rutas API aquí para mantener la simplicidad, pero puedes restaurarlas si las necesitas
+# app.api.add_api_route("/api/supplier-doc/{supplier_id}", get_supplier_doc, methods=["GET"])

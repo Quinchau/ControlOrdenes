@@ -8,3 +8,4 @@ logica.txt
 .env
 *.pyc
 alembic.ini
+.venv

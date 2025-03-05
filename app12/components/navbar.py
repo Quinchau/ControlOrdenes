@@ -30,7 +30,7 @@ def navbar() -> rx.Component:
                     navbar_link("Home", "/"),
                     navbar_link("Mary Kay", "/heads_admin"),
                     navbar_link("Orders", "/control_heads"),
-                    navbar_link("Pricing", "/#"),
+                    navbar_link("Tasks", "/tasks"),
                     navbar_link("Contact", "/#"),
                     spacing="5",
                 ),
