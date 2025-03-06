@@ -1,7 +1,6 @@
-const CACHE_VERSION = 'V0.0.3';
+const CACHE_VERSION = 'V0.0.4';
 const CACHE_NAME = `to-do-easy-cache-${CACHE_VERSION}`;
 
-// URLs normalizadas sin barras diagonales finales
 const urlsToCache = [
   '/',
   '/drops-6392473_640.jpg',
@@ -28,7 +27,7 @@ self.addEventListener('install', (event) => {
         console.error('Error en precacheo:', error);
       })
   );
-  self.skipWaiting(); // Forzar activación inmediata
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -45,53 +44,68 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  self.clients.claim(); // Tomar control de todas las pestañas
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
   const pathname = requestUrl.pathname;
 
-  // Ignorar solicitudes no GET y extensiones
   if (event.request.method !== 'GET' || requestUrl.protocol.startsWith('chrome-extension')) {
     event.respondWith(fetch(event.request).catch(() => {}));
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) return cachedResponse;
+    caches.match(event.request)
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          console.log('Sirviendo desde caché:', requestUrl);
+          return cachedResponse;
+        }
 
-      // Manejo especial para navegación (documentos HTML)
-      if (event.request.destination === 'document') {
-        const altPath = pathname.endsWith('/') 
-          ? pathname.slice(0, -1) 
-          : pathname + '/';
-        
-        return caches.match(altPath)
-          .then(altResponse => altResponse || caches.match('/'))
-          .catch(() => caches.match('/'));
-      }
-
-      // Intentar red y cachear dinámicamente
-      return fetch(event.request)
-        .then(response => {
-          if (!response || response.status !== 200) return response;
-
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-              console.log('Cacheado dinámicamente:', event.request.url);
-            });
-          return response;
-        })
-        .catch(() => {
-          console.log('Offline, buscando alternativas:', event.request.url);
-          return caches.match(event.request)
-            || (event.request.destination === 'document' && caches.match('/'))
-            || new Response('Offline: Recurso no disponible', { status: 503 });
-        });
-    })
+        // Intentar la red primero para rutas dinámicas
+        return fetch(event.request)
+          .then(networkResponse => {
+            if (!networkResponse || networkResponse.status !== 200) {
+              console.log('Respuesta de red inválida:', networkResponse.status);
+              return networkResponse;
+            }
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                console.log('Cacheado dinámicamente:', requestUrl);
+                cache.put(event.request, responseToCache);
+              })
+              .catch(error => {
+                console.error('Error al cachear dinámicamente:', error);
+              });
+            return networkResponse;
+          })
+          .catch(() => {
+            console.log('Sin red, manejando offline:', requestUrl);
+            if (event.request.destination === 'document') {
+              const altPath = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname + '/';
+              return caches.match(altPath)
+                .then(altResponse => {
+                  if (altResponse) {
+                    console.log('Sirviendo alternativa desde caché:', altPath);
+                    return altResponse;
+                  }
+                  console.log('Usando fallback a /');
+                  return caches.match('/') || new Response('Offline, página no disponible', { status: 503 });
+                });
+            }
+            return caches.match(event.request)
+              .then(fallbackResponse => {
+                if (fallbackResponse) {
+                  console.log('Devolviendo recurso cacheado:', requestUrl);
+                  return fallbackResponse;
+                }
+                console.log('Recurso no cacheado y sin red:', requestUrl);
+                return new Response('Offline, recurso no disponible', { status: 503 });
+              });
+          });
+      })
   );
 });
