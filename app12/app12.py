@@ -3,6 +3,7 @@ from rxconfig import config
 from fastapi import FastAPI
 from .backend.backend import States
 from .components.ui_base_page import base_page
+from .api.views.download_pdf_commission import get_supplier_doc
 
 # Configurar la app con PWA
 app = rx.App(
@@ -91,5 +92,6 @@ def index() -> rx.Component:
 
     )
 
-# No incluimos las rutas API aquí para mantener la simplicidad, pero puedes restaurarlas si las necesitas
-# app.api.add_api_route("/api/supplier-doc/{supplier_id}", get_supplier_doc, methods=["GET"])
+
+app.api.add_api_route(
+    "/api/supplier-doc/{supplier_id}", get_supplier_doc, methods=["GET"])
