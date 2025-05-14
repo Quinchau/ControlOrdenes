@@ -94,4 +94,4 @@ def index() -> rx.Component:
 
 
 app.api.add_api_route(
-    "/api/supplier-doc/{supplier_id}", get_supplier_doc, methods=["GET"])
+    "/api/supplier-doc/{supplier_id:path}", get_supplier_doc, methods=["GET"])

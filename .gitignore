@@ -9,3 +9,5 @@ logica.txt
 *.pyc
 alembic.ini
 .venv
+README.md
+.gitignore
