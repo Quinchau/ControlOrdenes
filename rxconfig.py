@@ -6,9 +6,9 @@ load_dotenv()
 
 config = rx.Config(
     app_name="app12",
-    api_url="http://localhost:8000",
+    api_url="http://localhost:8030",
     backend_host="0.0.0.0",
-    frontend_port=3000,
-    backend_port=8000,
+    frontend_port=3030,
+    backend_port=8030,
     env_file=".env"
 )
